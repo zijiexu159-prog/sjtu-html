@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SJTU HTML PPT 使用说明</title>
+    <link rel="stylesheet" href="../core/sjtu-ppt.css">
+  </head>
+  <body>
+    <main class="deck-shell" aria-live="polite">
+      <section id="deck" class="deck" aria-label="SJTU HTML PPT manual"></section>
+      <nav class="deck-controls" aria-label="Presentation controls">
+        <button class="icon-button" id="prev-slide" type="button" aria-label="Previous slide" title="Previous slide">‹</button>
+        <span id="slide-status" class="slide-status">1 / 1</span>
+        <button class="icon-button" id="next-slide" type="button" aria-label="Next slide" title="Next slide">›</button>
+        <button class="icon-button" id="toggle-fullscreen" type="button" aria-label="Fullscreen" title="Fullscreen">⛶</button>
+      </nav>
+    </main>
+
+    <script src="../core/sjtu-ppt-core.js"></script>
+    <script>
+      configureSJTUTheme({
+        transition: "fade",
+        footer: "上海交通大学",
+        info: {
+          title: "SJTU HTML PPT 使用说明",
+          subtitle: "用类似 Touying 的函数写 HTML 演示",
+          author: "SJTUG",
+          date: new Date().toLocaleDateString("zh-CN"),
+          institution: "Shanghai Jiao Tong University"
+        },
+        cssVars: {
+          "sjtu-red": "#c9141e",
+          "sjtu-red-dark": "#9f1018"
+        }
+      });
+
+      const slides = [
+        titleSlide(),
+        outlineSlide(),
+
+        sectionSlide("快速开始"),
+        subsection("最小结构"),
+        slide("最小结构：代码", { layout: "two" },
+          list(
+            "只需要样式文件、核心库和一个 slides 数组。",
+            "`sectionSlide()` 生成章节页，并设置后续页面的章节。",
+            "`subsection()` 切换小节上下文，不生成独立页面，但会显示为内容页标题区的上级标题。",
+            "`slide()` 的标题是当前页面页题，不是重复声明章节。",
+            "每个传给 `slide()` 的内容块默认逐步出现。"
+          ),
+          code(`configureSJTUTheme({
+  transition: "fade",
+  info: { title: "我的报告", author: "张三" }
+});
+
+const slides = [
+  titleSlide(),
+  outlineSlide(),
+  sectionSlide("模型"),
+  subsection("方程"),
+  slide("控制方程",
+    formula("Burgers 方程", "$u_t + u u_x = \\\\nu u_{xx}$")
+  ),
+  slide("边界条件",
+    list("这一页仍自动属于“模型 / 方程”。")
+  ),
+  endSlide()
+];
+
+bootstrapSJTUDeck(slides);`)
+        ),
+
+        slide("最小结构：结果", { layout: "two" },
+          formula("Burgers 方程", "$u_t + u u_x = \\nu u_{xx}$"),
+          note("继承关系", "本页没有填写 `section` 或 `subsection`，仍会自动归入“快速开始 / 最小结构”。内容页会显示小节标题“最小结构”和本页页题“最小结构：结果”。")
+        ),
+
+        subsection("全局设置"),
+        slide("全局设置：代码", { layout: "aside" },
+          code(`configureSJTUTheme({
+  transition: "rise",
+  footer: "上海交通大学 · 机械与动力工程学院",
+  info: {
+    title: "二类长度函数及解个数判据",
+    subtitle: "HTML 演示模板",
+    author: "郑雪"
+  },
+  cssVars: {
+    "sjtu-red": "#b11226",
+    "paper": "#ffffff"
+  }
+});`),
+          definition("这页想讲什么", "`configureSJTUTheme()` 不是一页幻灯片，而是整份报告的默认设置：标题页信息、页脚文字、默认动画、主题色和 MathJax 路径。")
+        ),
+
+        slide("全局设置：结果", { layout: "two" },
+          quoteBlock("饮水思源，爱国荣校", "上海交通大学校训"),
+          note("对应效果", "`info` 会改变标题页，`footer` 会改变页脚，`transition` 会改变翻页动画，`cssVars` 会改变整份模板的颜色。")
+        ),
+
+        subsection("命令与默认值"),
+        slide("命令与默认值：代码", { layout: "two" },
+          code(`setDefaults({
+  slide: { layout: "two" },
+  fragment: { effect: "fade" },
+  figure: { zoomable: false },
+  code: { language: "js" }
+});
+
+twoSlide("直接两栏",
+  text(\`这是 \${strong("粗体")}、\${emph("红色强调")}、
+\${muted("弱化文字")} 和 \${mark("标记文字")}。\`),
+  theorem("结论", \`参见 \${link("模板说明", "README.md")}。\`)
+);`),
+          definition("与 Typst 的对应关系", "`setDefaults()` 类似 `#set`；`twoSlide()`、`text()`、`strong()` 等是直接命令。JavaScript 语法不能使用 `#` 前缀，但使用时同样无需写 class。")
+        ),
+
+        slide("命令与默认值：结果", { layout: "two" },
+          text(`这是 ${strong("粗体")}、${emph("红色强调")}、${muted("弱化文字")}、${mark("标记文字")}，以及行内公式 $E = mc^2$。`),
+          theorem("直接命令", `这一页只调用函数，没有手写任何 CSS class。`)
+        ),
+
+        sectionSlide("版式与内容块"),
+        subsection("页面版式"),
+        slide("页面版式：代码", { layout: "two" },
+          code(`slide("一栏", { layout: "one" },
+  list("A", "B")
+);
+
+slide("两栏", { layout: "two" },
+  list("左栏"),
+  figure("右栏")
+);
+
+slide("侧栏", { layout: "aside" },
+  theorem("主内容", "..."),
+  note("旁注", "...")
+);`),
+          definition("layout", "`one` 适合单一重点，`two` 适合并列信息，`aside` 适合主内容加旁注。")
+        ),
+
+        slide("页面版式：结果", { layout: "aside" },
+          theorem("主内容", "这里是 `aside` 的较宽主栏，适合放主要结论、公式或图。"),
+          note("旁注", "这里是较窄侧栏，适合放说明、提醒或参数。")
+        ),
+
+        subsection("内部多栏"),
+        slide("内部多栏：代码", { layout: "two" },
+          code(`columns(
+  list("左栏第一点", "左栏第二点"),
+  example("右栏", "这是内部分栏。")
+);
+
+grid([
+  definition("定义", "一个小块"),
+  theorem("定理", "一个小块"),
+  alertBlock("提醒", "一个小块")
+], { columns: 3 });`),
+          note("区别", "`layout` 控制整页网格；`columns()` 和 `grid()` 控制某个 fragment 内部的排版。")
+        ),
+
+        slide("内部多栏：结果", { layout: "one" },
+          grid([
+            definition("定义", "适合放概念。"),
+            theorem("定理", "适合放结论。"),
+            alertBlock("提醒", "适合放风险或重点。")
+          ], { columns: 3 })
+        ),
+
+        subsection("框与公式"),
+        slide("框与公式：代码", { layout: "two" },
+          code(`formula(
+  "控制方程",
+  "$u_t + u u_x = \\\\nu u_{xx} + f(x,t)$",
+  { label: "eq:burgers" }
+);
+
+note("引用", \`由 \${eqRef("eq:burgers")} 可知……\`);
+note("图引用", \`见 \${figureRef("fig:phase")}，按 R 可返回引用来源。\`);
+
+theorem("定理", "交大红标题栏。");
+example("例", "赭红标题栏。");
+definition("定义", "红棕标题栏。");
+alertBlock("提醒", "暖棕标题栏。");
+note("注", "陶土色标题栏。");
+proof("证明", "暖灰棕标题栏。");`),
+          formula("控制方程", "$u_t + u u_x = \\nu u_{xx} + f(x,t)$", { label: "eq:burgers" })
+        ),
+
+        slide("框与公式：结果", { layout: "two" },
+          note("公式引用", `由 ${eqRef("eq:burgers")} 可知粘性项会影响解的光滑性。`),
+          note("引用返回", "点击公式或图片引用跳转后，按 R 回到跳转前的页面。"),
+          theorem("定理", "交大红标题栏。"),
+          example("例", "赭红标题栏。"),
+          definition("定义", "红棕标题栏。")
+        ),
+
+        subsection("公式对比"),
+        slide("公式对比：代码", { layout: "two" },
+          code(`equationCompare(
+  "$u_t + u u_x = 0$",
+  "$u_t + u u_x = \\\\nu u_{xx}$",
+  {
+    leftLabel: "无粘性",
+    rightLabel: "有粘性"
+  }
+);`),
+          note("用途", "`equationCompare()` 适合讲模型变体、假设变化或推导前后对照。")
+        ),
+
+        slide("公式对比：结果", { layout: "one" },
+          equationCompare(
+            "$u_t + u u_x = 0$",
+            "$u_t + u u_x = \\nu u_{xx}$",
+            { leftLabel: "无粘性", rightLabel: "有粘性" }
+          )
+        ),
+
+        sectionSlide("动画"),
+        subsection("页间动画"),
+        slide("页间动画：代码", { layout: "aside" },
+          code(`configureSJTUTheme({ transition: "fade" });
+
+setSlideTransition("fade");  // 淡入淡出
+setSlideTransition("slide"); // 横向滑入
+setSlideTransition("rise");  // 上浮进入
+setSlideTransition("zoom");  // 轻微缩放
+setSlideTransition("none");  // 关闭动画`),
+          list("正式答辩推荐 `fade` 或 `rise`。", "`zoom` 适合少量展示型页面。", "`none` 适合录屏或调试。")
+        ),
+
+        slide("页间动画：结果", { layout: "two" },
+          example("fade / rise", "更稳，适合学术报告。"),
+          note("slide / zoom", "更有表现力，适合展示关键图或章节切换。")
+        ),
+
+        subsection("分步显隐"),
+        slide("分步显隐：代码", { layout: "two" },
+          code(`slide("逐步讲解", { layout: "two" },
+  uncover(1, list("第一步"), { effect: "slide-left" }),
+  uncover(2, theorem("第二步", "指定步出现"), { effect: "zoom" }),
+  only(3, alertBlock("第三步", "只在这一步显示"), { effect: "blur" }),
+  pause(),
+  uncover(5, note("第五步", "中间留一个空拍"))
+);`),
+          definition("效果", "`uncover(step, content)` 从指定步开始显示；`only(step, content)` 只在指定步显示；`pause()` 增加空的一步。")
+        ),
+
+        slide("分步显隐：结果", { layout: "two" },
+          uncover(1, list("第一步"), { effect: "slide-left" }),
+          uncover(2, theorem("第二步", "指定步出现"), { effect: "zoom" }),
+          only(3, alertBlock("第三步", "只在这一步显示"), { effect: "blur" }),
+          pause(),
+          uncover(5, note("第五步", "中间留了一个空拍。"), { effect: "rise" })
+        ),
+
+        subsection("Fragment 效果"),
+        slide("Fragment 效果：代码", { layout: "two" },
+          code(`frag(list("淡入"), { effect: "fade" });
+frag(list("上浮"), { effect: "rise" });
+frag(list("屏幕外右侧进入"), { effect: "slide-left" });
+frag(list("屏幕外左侧进入"), { effect: "slide-right" });
+frag(list("缩放"), { effect: "zoom" });
+frag(list("模糊转清晰"), { effect: "blur" });
+
+slide("飞移动画", { layout: "two" },
+  only(1, theorem("移动块", "第 1 步在左栏"), {
+    motionId: "move-card",
+    effect: "fade"
+  }),
+  uncover(2, theorem("移动块", "第 2 步飞到右栏"), {
+    motionId: "move-card",
+    effect: "fade"
+  })
+);`),
+          note("默认值", "普通内容块等价于 `{ effect: \"fade-up\" }`。同一个 `motionId` 在前后 step 的真实位置不同，就会自动飞移。")
+        ),
+
+        slide("Fragment 效果：结果", { layout: "two" },
+          frag(example("slide-left", "从屏幕外右侧进入。"), { effect: "slide-left" }),
+          frag(example("slide-right", "从屏幕外左侧进入。"), { effect: "slide-right" }),
+          frag(example("zoom", "轻微缩放出现。"), { effect: "zoom" }),
+          frag(example("blur", "由虚到实。"), { effect: "blur" })
+        ),
+
+        slide("飞移动画：结果", { layout: "two" },
+          only(1, example("motionId", "第 1 步在左栏。"), {
+            motionId: "manual-move",
+            effect: "fade"
+          }),
+          uncover(2, example("motionId", "第 2 步按真实位置飞到右栏。"), {
+            motionId: "manual-move",
+            effect: "fade"
+          })
+        ),
+
+        sectionSlide("交互与备注"),
+        subsection("图片放大"),
+        slide("图片放大：代码", { layout: "aside" },
+          code(`figure("图片说明", {
+  src: "../assets/thumbnail.png",
+  caption: "点击图片可放大。",
+  ref: "fig:phase"
+});
+
+figure("不可放大", {
+  src: "../assets/thumbnail.png",
+  zoomable: false
+});`),
+          definition("交互原则", "图片放大是点击触发的独立交互，会从原图位置移动并放大到中央，关闭时缩回；它不占用 fragment 步骤。")
+        ),
+
+        slide("图片放大：结果", { layout: "two" },
+          list("点击右侧图片放大。", `图片引用显示为 ${figureRef("fig:phase")}。`, "点击引用跳转后按 R 返回。"),
+          figure("SJTU theme thumbnail", {
+            src: "../assets/thumbnail.png",
+            caption: "点击此图可放大到居中位置。",
+            ref: "fig:phase"
+          })
+        ),
+
+        subsection("演讲者备注"),
+        slide("演讲者备注：代码", { layout: "two" },
+          code(`slide("有备注的一页",
+  theorem("结论", "这里是给观众看的内容。"),
+  speakerNotes(
+    "这里是给自己看的提示。",
+    "按 N 可以打开或关闭备注。"
+  )
+);`),
+          note("快捷键", "按 `N` 打开或关闭备注面板；备注不会出现在打印页里。")
+        ),
+
+        slide("演讲者备注：结果", { layout: "two" },
+          theorem("观众看到", "页面上只显示正常内容。"),
+          note("自己看到", "按 `N` 后会在底部出现备注面板。"),
+          speakerNotes("这一页的备注：讲到这里时可以提醒自己放慢速度，先解释快捷键，再演示开关。")
+        ),
+
+        sectionSlide("公式、代码与导出"),
+        subsection("MathJax"),
+        slide("MathJax：代码", { layout: "two" },
+          code(`configureSJTUTheme({
+  mathjax: {
+    local: "vendor/mathjax/tex-svg.js",
+    cdn: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
+  }
+});
+
+loadSJTUMathJax();`),
+          list("默认先尝试本地 MathJax。", "本地文件不存在时自动回退到 CDN。", "完全离线演示时，把 MathJax 放到 `vendor/mathjax/tex-svg.js`。")
+        ),
+
+        slide("MathJax：结果", { layout: "two" },
+          formula("行内与块级公式", "$E = mc^2$，以及 $$\\int_0^1 x^2\\,dx = \\frac{1}{3}$$"),
+          formula("局部出现", "$$E = mc^2 \\pause{2}{+ \\int_0^1 x^2\\,dx}$$"),
+          note("提醒", "`\\pause{2}{...}` 会在第 2 步显示公式的一部分；隐藏时保留同尺寸占位。")
+        ),
+
+        subsection("代码高亮"),
+        slide("代码高亮：代码", { layout: "two" },
+          code(`code(\`slide("例子",
+  list("第一点", "第二点"),
+  theorem("结论", "内容")
+);\`, { language: "js" });`),
+          definition("说明", "模板内置了轻量 JS 高亮，不依赖外部库；复杂语言可以以后再接 Prism 或 Shiki。")
+        ),
+
+        slide("代码高亮：结果", { layout: "one" },
+          code(`slide("例子",
+  list("第一点", "第二点"),
+  theorem("结论", "内容")
+);`, { language: "js" })
+        ),
+
+        subsection("打印导出"),
+        slide("打印导出：代码", { layout: "two" },
+          code(`printSlides();
+
+// 或者直接在浏览器里：
+// Ctrl + P / Cmd + P
+// 选择打印为 PDF`),
+          list("打印模式会展开所有 fragment。", "控制按钮和备注面板不会打印。", "建议浏览器选择横向、无页边距或最小页边距。")
+        ),
+
+        slide("打印导出：结果", { layout: "two" },
+          note("快捷键", "按 `P` 会调用 `printSlides()`。"),
+          alertBlock("注意", "不同浏览器的 PDF 页面边距略有差异；最终答辩前建议实际导出检查一次。")
+        ),
+
+        sectionSlide("纯文本写稿"),
+        subsection("类 Markdown 语法"),
+        slide("不写 JavaScript", { layout: "two" },
+          code(`% title: 我的报告
+% author: 张三
+
+# 研究背景
+## 模型建立
+
+--- 控制方程 [2] [0.4, 0.6]
+
+- 第一项
+- 使用 **粗体** 和 ==标记==
+
+$$ {#model}
+u_t = u_{xx}
+$$`, { language: "text" }),
+          definition("推荐入口", "直接修改 `markdown/example.sjtu.md`，再运行 `node core/build-sjtu-markup.js markdown/example.sjtu.md markdown/example.html` 生成可打开的 HTML。")
+        ),
+
+        slide("文本语法对应关系", { layout: "two" },
+          list(
+            "`# 标题`：章节页。",
+            "`## 标题`：切换小节，不生成独立页面，但会显示为内容页标题区的上级标题。",
+            "`--- 页面标题 [2]`：创建两栏页面。",
+            "`--- 页面标题 [3] [0.2,0.5,0.3]`：创建不等宽三栏页面。",
+            "`--- 页面标题 [2] [transition=zoom]`：覆盖当前页切换动画。",
+            "`### 内容块名称 [zoom]`：建立独立动画内容块，名称不显示。",
+            "`#### step 名称 [1-2]`：在同一位置替换内容，名称不显示。",
+            "`||`：结束当前页面栏，后续内容进入下一栏。",
+            "`||[2][0.35,0.65]`：为当前空栏或下一页面栏建立两个固定高度槽。",
+            "`|||`：在当前 `###` 或 `####` 对象内部切换栏。",
+            "`#v(1em)`：插入手动纵向间距。",
+            "`- 内容`：列表。",
+            "`$$ {#eq:标签}`：带编号和标签的公式。",
+            "`@eq:标签`：引用公式。",
+            "`![说明](路径){#fig:标签}`：带编号图片。",
+            "`@fig:标签`：引用图片；点击跳转后按 R 返回。"
+          ),
+          code(`::: theorem 定理标题
+这里是定理正文。
+:::
+
+![图片说明](images/result.png){#fig:result}
+
+由 @fig:result 可回到这张图。
+
+\`\`\`text
+这里是代码或伪代码。
+\`\`\`
+
+> notes: 这里是演讲者备注。`, { language: "text" })
+        ),
+
+        sectionSlide("完整示例"),
+        subsection("推荐写法"),
+        slide("推荐写法", { layout: "one" },
+          code(`configureSJTUTheme({
+  transition: "fade",
+  info: {
+    title: "二类长度函数及解个数判据",
+    subtitle: "答辩报告",
+    author: "郑雪"
+  }
+});
+
+const slides = [
+  titleSlide(),
+  outlineSlide(),
+
+  sectionSlide("模型"),
+  subsection("方程"),
+  slide("控制方程", { layout: "two" },
+    formula("控制方程", "$u_t + u u_x = \\\\nu u_{xx}$"),
+    theorem("局部存在性", "在适当初值条件下，解局部存在。"),
+    speakerNotes("先讲符号，再讲存在性条件。")
+  ),
+
+  subsection("判据"),
+  slide("解个数判据",
+    theorem("判据", "后续页面会自动继承当前 section 和 subsection。")
+  ),
+
+  sectionSlide("数值例子"),
+  subsection("对比"),
+  slide("两类长度函数", { layout: "one" },
+    equationCompare("$L_1(\\\\lambda)$", "$L_2(\\\\lambda)$", {
+      leftLabel: "一类",
+      rightLabel: "二类"
+    })
+  ),
+
+  endSlide()
+];
+
+bootstrapSJTUDeck(slides);`)
+        ),
+
+        endSlide("Thanks for Listening!")
+      ];
+
+      bootstrapSJTUDeck(slides);
+    </script>
+  </body>
+</html>

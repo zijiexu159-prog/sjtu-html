@@ -1,0 +1,13 @@
+{
+  "name": "sjtu-html-ppt-template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone SJTU-style HTML presentation template with direct HTML and SJTU markup workflows.",
+  "scripts": {
+    "build:example": "node core/build-sjtu-markup.js markdown/example.sjtu.md markdown/example.html",
+    "build:manual": "node core/build-sjtu-markup.js markdown/manual.sjtu.md markdown/manual.html",
+    "build:touying": "node core/build-sjtu-markup.js markdown/touying-main-complete.sjtu.md markdown/touying-main-complete.html",
+    "build": "npm run build:example && npm run build:manual && npm run build:touying",
+    "check:js": "node --check core/sjtu-ppt-core.js && node --check core/sjtu-markup.js && node --check core/build-sjtu-markup.js && node --check direct-html/basic-slides.js"
+  }
+}

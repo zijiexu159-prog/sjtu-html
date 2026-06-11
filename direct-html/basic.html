@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SJTU HTML PPT 完整示例</title>
+    <link rel="stylesheet" href="../core/sjtu-ppt.css">
+  </head>
+  <body>
+    <main class="deck-shell" aria-live="polite">
+      <section id="deck" class="deck" aria-label="SJTU complete presentation"></section>
+      <nav class="deck-controls" aria-label="Presentation controls">
+        <button class="icon-button" id="prev-slide" type="button" aria-label="Previous slide" title="Previous slide">‹</button>
+        <span id="slide-status" class="slide-status">1 / 1</span>
+        <button class="icon-button" id="next-slide" type="button" aria-label="Next slide" title="Next slide">›</button>
+        <button class="icon-button" id="toggle-fullscreen" type="button" aria-label="Fullscreen" title="Fullscreen">⛶</button>
+      </nav>
+    </main>
+
+    <script src="../core/sjtu-ppt-core.js"></script>
+    <script>
+      configureSJTUTheme({
+        transition: "fade",
+        footer: "上海交通大学",
+        info: {
+          title: "二类长度函数及解个数判据",
+          subtitle: "SJTU HTML PPT 完整示例",
+          author: "郑雪",
+          date: new Date().toLocaleDateString("zh-CN"),
+          institution: "Shanghai Jiao Tong University"
+        }
+      });
+
+      const slides = [
+        titleSlide(),
+        outlineSlide(),
+
+        sectionSlide("研究背景与模型"),
+        subsection("模型建立"),
+        slide("模型建立", { layout: "two" },
+          list("从演化方程出发。", "给出控制项与边界条件。", "将问题转化为可判定的长度函数。"),
+          formula("控制方程", "$u_t + u u_x = \\nu u_{xx} + f(x,t)$"),
+          speakerNotes("讲这一页时先解释各符号含义，再说明为什么要转成长度函数。")
+        ),
+
+        subsection("动画接口"),
+        slide("动画接口", { layout: "two" },
+          uncover(1, list("第 1 步：给出目标。"), { effect: "slide-left" }),
+          uncover(2, theorem("第 2 步", "把条件写成可验证判据。"), { effect: "zoom" }),
+          only(3, alertBlock("第 3 步", "`only` 可以在某一步替换内容。"), { effect: "blur" })
+        ),
+
+        sectionSlide("版式组件"),
+        subsection("公式与定理卡片"),
+        slide("公式与定理卡片", { layout: "two" },
+          theorem("定理", "若长度函数满足单调性与边界约束，则解个数可由临界点数量判定。"),
+          example("例", "赭红示例框适合放具体参数或小算例。"),
+          definition("定义", "红棕定义框适合放术语。"),
+          alertBlock("提醒", "暖棕提醒框适合放容易遗漏的假设。")
+        ),
+
+        subsection("多栏与对比"),
+        slide("多栏与对比", { layout: "one" },
+          grid([
+            definition("输入", "初值、边界和参数。"),
+            theorem("判据", "长度函数的符号变化。"),
+            note("输出", "解个数与分支结构。")
+          ], { columns: 3 })
+        ),
+
+        slide("公式对比", { layout: "one" },
+          equationCompare(
+            "$L_1(\\lambda) = a\\lambda + b$",
+            "$L_2(\\lambda) = a\\lambda^2 + b\\lambda + c$",
+            { leftLabel: "一类长度函数", rightLabel: "二类长度函数" }
+          )
+        ),
+
+        sectionSlide("交互与导出"),
+        subsection("点击放大"),
+        slide("点击放大", { layout: "two" },
+          list("图片带 `src` 时默认可放大。", "不点击图片时不会显示 overlay。", "点击背景或按 Esc 关闭。"),
+          figure("SJTU thumbnail", {
+            src: "../assets/thumbnail.png",
+            caption: "点击图片可居中放大。"
+          })
+        ),
+
+        subsection("备注与打印"),
+        slide("备注与打印", { layout: "two" },
+          note("演讲者备注", "按 `N` 查看本页备注。"),
+          proof("打印导出", "按 `P` 或调用 `printSlides()` 可以打印为 PDF；打印时 fragment 会全部展开。"),
+          speakerNotes("备注示例：这里可以提醒自己展示图片放大，再演示打印入口。")
+        ),
+
+        endSlide("Thanks for Listening!")
+      ];
+
+      bootstrapSJTUDeck(slides);
+    </script>
+  </body>
+</html>
