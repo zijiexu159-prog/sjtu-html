@@ -3,6 +3,7 @@
 % author: 郑雪
 % footer: 上海交通大学
 % transition: fade
+% bibliography: references.bib
 
 # 研究背景与模型
 
@@ -25,6 +26,7 @@ $$
 :::
 
 这里是普通段落。直接写行内公式 $E = mc^2$ 即可。
+文献可以写成 @cite:turing1950，脚注可以写成这样[^note-demo]。
 
 $$
 E = mc^2 \pause{2}{+ \int_0^1 x^2\,dx}
@@ -100,3 +102,5 @@ $$
 ```
 
 > notes: 这里是演讲者备注，按 N 查看。
+
+[^note-demo]: 这是一条当前页脚注；脚注定义可以放在文件末尾。

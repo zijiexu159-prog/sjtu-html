@@ -56,6 +56,7 @@ npm run build
 % author: 张三
 % footer: 上海交通大学
 % transition: fade
+% bibliography: references.bib
 
 # 研究背景
 ## 模型建立
@@ -74,6 +75,7 @@ u_t + u u_x = \nu u_{xx}
 $$
 
 由 @eq:model 可得到能量估计。
+文献引用写作 @cite:turing1950，脚注写作这样[^note-demo]。
 
 ::: theorem 局部存在性
 在适当初值条件下，解局部存在。
@@ -82,6 +84,8 @@ $$
 ![相图](../assets/figures/三重根.svg){#fig:phase}
 
 参见 @fig:phase。
+
+[^note-demo]: 这条脚注只会显示在当前页底部。
 ```
 
 ## 分栏与内容块
@@ -140,6 +144,25 @@ $$
 
 公式引用使用 `@eq:burgers`，图片引用使用 `@fig:phase`。点击引用会跳转到对应页面，按 `R` 可返回跳转前的位置。
 
+文献引用使用 `@cite:key`，在文件头写 `% bibliography: references.bib` 后，构建脚本会把 `.bib` 内联进 HTML 并自动生成参考文献页。脚注使用 `[^id]`，脚注定义使用 `[^id]: 脚注内容`。
+
+## 参考文献页
+
+默认情况下，只要正文出现 `@cite:key`，模板会自动在结尾追加“参考文献”页。常用配置：
+
+```markdown
+% bibliography: references.bib
+% bibliography-title: 参考文献
+% bibliography-position: last
+% bibliography-include-uncited: false
+```
+
+如果你希望 Thanks 页仍然是最后一页，可写：
+
+```markdown
+% bibliography-position: before-end
+```
+
 ## 路径约定
 
 项目现在是独立子项目，不再依赖外层 `touying-sjtu`：
@@ -165,4 +188,3 @@ git commit -m "Initial SJTU HTML PPT template"
 git remote add origin https://github.com/<user>/<repo>.git
 git push -u origin main
 ```
-

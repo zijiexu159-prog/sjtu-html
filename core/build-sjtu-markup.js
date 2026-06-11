@@ -5,9 +5,12 @@ const inputArg = process.argv[2] || "markdown/example.sjtu.md";
 const outputArg = process.argv[3] || inputArg.replace(/\.sjtu\.md$/i, ".html");
 const input = path.resolve(inputArg);
 const output = path.resolve(outputArg);
-const source = fs.readFileSync(input, "utf8").replace(/<\/script/gi, "<\\/script");
+const rawSource = fs.readFileSync(input, "utf8");
+const source = rawSource.replace(/<\/script/gi, "<\\/script");
 const title = source.match(/^%\s*title\s*:\s*(.+)$/m)?.[1] || "SJTU Markup PPT";
 const assetBase = getAssetBase(output);
+const bibSource = readBibliographySources(rawSource, input);
+const bibScript = bibSource ? `    <script>window.sjtuBibSource = ${JSON.stringify(bibSource)};</script>\n` : "";
 
 const html = `<!doctype html>
 <html lang="zh-CN">
@@ -29,7 +32,7 @@ const html = `<!doctype html>
     </main>
     <script src="${assetBase}sjtu-ppt-core.js"></script>
     <script src="${assetBase}sjtu-markup.js"></script>
-    <script type="text/sjtu-markup">
+${bibScript}    <script type="text/sjtu-markup">
 ${source}
     </script>
     <script>autoBootstrapSJTUMarkup();</script>
@@ -52,4 +55,34 @@ function getAssetBase(outputFile) {
   const outputDir = path.dirname(outputFile);
   const relative = path.relative(outputDir, __dirname).replace(/\\/g, "/");
   return relative && relative !== "." ? `${relative}/` : "";
+}
+
+function readBibliographySources(sourceText, inputFile) {
+  const inputDir = path.dirname(inputFile);
+  const paths = [];
+  let inFence = false;
+  for (const line of sourceText.replace(/\r\n?/g, "\n").split("\n")) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const match = line.match(/^%\s*(?:bibliography|bib)\s*:\s*(.+)$/);
+    if (!match) continue;
+    match[1]
+      .split(/[;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((item) => paths.push(item));
+  }
+  const chunks = [];
+  for (const bibPath of paths) {
+    const fullPath = path.resolve(inputDir, bibPath);
+    if (!fs.existsSync(fullPath)) {
+      console.warn(`Warning: bibliography file not found: ${fullPath}`);
+      continue;
+    }
+    chunks.push(fs.readFileSync(fullPath, "utf8"));
+  }
+  return chunks.join("\n\n");
 }

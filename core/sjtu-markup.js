@@ -1,5 +1,6 @@
 function parseSJTUMarkup(source) {
-  const lines = String(source || "").replace(/\r\n?/g, "\n").split("\n");
+  const footnoteDefinitions = new Map();
+  const lines = extractMarkupFootnotes(String(source || "").replace(/\r\n?/g, "\n").split("\n"), footnoteDefinitions);
   const meta = {};
   const slides = [];
   let index = 0;
@@ -189,7 +190,7 @@ function parseSJTUMarkup(source) {
     if (/^-\s+/.test(line)) {
       const items = [];
       while (index < lines.length && /^\s*-\s+/.test(lines[index])) {
-        items.push(parseMarkupInline(lines[index].replace(/^\s*-\s+/, "")));
+        items.push(parseMarkupInline(lines[index].replace(/^\s*-\s+/, ""), footnoteDefinitions));
         index += 1;
       }
       pushFragment(list(...items));
@@ -231,7 +232,7 @@ function parseSJTUMarkup(source) {
         index += 1;
       }
       index += 1;
-      pushFragment(makeMarkupBlock(blockMatch[1], blockMatch[2] || blockMatch[1], body.join("\n")));
+      pushFragment(makeMarkupBlock(blockMatch[1], blockMatch[2] || blockMatch[1], body.join("\n"), footnoteDefinitions));
       continue;
     }
 
@@ -259,11 +260,34 @@ function parseSJTUMarkup(source) {
       paragraph.push(lines[index].trim());
       index += 1;
     }
-    pushFragment(text(parseMarkupInline(paragraph.join(" "))));
+    pushFragment(text(parseMarkupInline(paragraph.join(" "), footnoteDefinitions)));
   }
 
   flushPage();
   return { meta, slides };
+}
+
+function extractMarkupFootnotes(lines, footnotes) {
+  const output = [];
+  let inFence = false;
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      output.push(line);
+      continue;
+    }
+    if (inFence) {
+      output.push(line);
+      continue;
+    }
+    const match = line.match(/^\s*\[\^([^\]]+)\]:\s*(.+)$/);
+    if (match) {
+      footnotes.set(match[1].trim(), match[2].trim());
+      continue;
+    }
+    output.push(line);
+  }
+  return output;
 }
 
 function parseMarkupPageHeader(line) {
@@ -333,31 +357,39 @@ function parseMarkupWidths(value, columns) {
   return widths;
 }
 
-function parseMarkupInline(value = "") {
+function parseMarkupInline(value = "", footnotes = new Map()) {
   return String(value)
     .replace(/@eq:([\w:.-]+)/g, (_, label) => eqRef(label))
     .replace(/@fig:([\w:.-]+)/g, (_, label) => figureRef(label))
+    .replace(/@cite:([\w:.-]+)/g, (_, key) => cite(key))
+    .replace(/\[\^([^\]]+)\]/g, (_, id) => footnote(footnotes.get(id) || id, id))
     .replace(/\*\*([^*]+)\*\*/g, (_, body) => strong(body))
     .replace(/==([^=]+)==/g, (_, body) => mark(body))
     .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, (_, body) => emph(body))
     .replace(/`([^`]+)`/g, (_, body) => strong(body));
 }
 
-function makeMarkupBlock(kind, title, body) {
-  const parsed = parseMarkupInline(body);
+function makeMarkupBlock(kind, title, body, footnotes = new Map()) {
+  const parsed = parseMarkupInline(body, footnotes);
   const makers = { theorem, example, definition, alert: alertBlock, note, proof };
   if (kind === "formula") return formula(title, body, { boxed: true });
   return makers[kind](title, parsed);
 }
 
 function isMarkupControl(line) {
-  return /^(%|#|---|\|\||-\s+|```|\$\$|:::|!\[|>\s*notes?:)/i.test(line);
+  return /^(%|#|---|\|\||-\s+|```|\$\$|:::|!\[|>\s*notes?:|\[\^[^\]]+\]:)/i.test(line);
 }
 
 function configureFromSJTUMarkup(meta = {}) {
   configureSJTUTheme({
     transition: meta.transition || "fade",
     footer: meta.footer || "上海交通大学",
+    bibliography: {
+      source: window.sjtuBibSource || meta["bibliography-source"] || "",
+      title: meta["bibliography-title"] || "参考文献",
+      position: meta["bibliography-position"] || "last",
+      includeUncited: meta["bibliography-include-uncited"] === "true",
+    },
     info: {
       title: meta.title || "SJTU HTML PPT",
       subtitle: meta.subtitle || "",

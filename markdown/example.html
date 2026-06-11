@@ -18,12 +18,14 @@
     </main>
     <script src="../core/sjtu-ppt-core.js"></script>
     <script src="../core/sjtu-markup.js"></script>
+    <script>window.sjtuBibSource = "@article{turing1950,\n  author  = {Turing, Alan M.},\n  title   = {Computing Machinery and Intelligence},\n  journal = {Mind},\n  year    = {1950},\n  volume  = {59},\n  number  = {236},\n  pages   = {433--460}\n}\n\n@book{knuth1984,\n  author    = {Knuth, Donald E.},\n  title     = {The TeXbook},\n  publisher = {Addison-Wesley},\n  year      = {1984}\n}\n";</script>
     <script type="text/sjtu-markup">
 % title: 二类长度函数及解个数判据
 % subtitle: 纯文本写稿示例
 % author: 郑雪
 % footer: 上海交通大学
 % transition: fade
+% bibliography: references.bib
 
 # 研究背景与模型
 
@@ -46,6 +48,7 @@ $$
 :::
 
 这里是普通段落。直接写行内公式 $E = mc^2$ 即可。
+文献可以写成 @cite:turing1950，脚注可以写成这样[^note-demo]。
 
 $$
 E = mc^2 \pause{2}{+ \int_0^1 x^2\,dx}
@@ -121,6 +124,8 @@ $$
 ```
 
 > notes: 这里是演讲者备注，按 N 查看。
+
+[^note-demo]: 这是一条当前页脚注；脚注定义可以放在文件末尾。
 
     </script>
     <script>autoBootstrapSJTUMarkup();</script>

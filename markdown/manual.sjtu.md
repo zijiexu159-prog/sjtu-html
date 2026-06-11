@@ -3,6 +3,8 @@
 % author: HTML 模板说明
 % footer: 上海交通大学
 % transition: fade
+% bibliography: references.bib
+% bibliography-position: before-end
 
 # 快速开始
 ## 文件位置
@@ -330,6 +332,24 @@ $$
 :::
 
 > notes: 这是一条真实备注，只在备注面板中显示。
+
+--- 参考文献与脚注：写法[1]
+
+```markdown
+% bibliography: references.bib
+
+正文引用文献 @cite:turing1950，并插入脚注[^demo-note]。
+
+[^demo-note]: 脚注定义通常放在文件末尾。
+```
+
+`.bib` 文件会在构建时被内联进 HTML；点击文献编号会跳到参考文献页，按 `R` 返回。
+
+--- 参考文献与脚注：效果[1]
+
+正文引用文献 @cite:turing1950，并插入脚注[^manual-note]。
+
+[^manual-note]: 这条脚注只显示在当前页底部，不会进入演讲者备注。
 
 # 输出
 ## 常用命令

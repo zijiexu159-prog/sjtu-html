@@ -29,6 +29,17 @@
           date: new Date().toLocaleDateString("zh-CN"),
           institution: "Shanghai Jiao Tong University"
         },
+        bibliography: {
+          position: "before-end",
+          entries: {
+            turing1950: {
+              author: "Turing, Alan M.",
+              title: "Computing Machinery and Intelligence",
+              journal: "Mind",
+              year: "1950"
+            }
+          }
+        },
         cssVars: {
           "sjtu-red": "#c9141e",
           "sjtu-red-dark": "#9f1018"
@@ -194,6 +205,35 @@ proof("证明", "暖灰棕标题栏。");`),
           theorem("定理", "交大红标题栏。"),
           example("例", "赭红标题栏。"),
           definition("定义", "红棕标题栏。")
+        ),
+
+        subsection("文献与脚注"),
+        slide("文献与脚注：代码", { layout: "two" },
+          code(`configureSJTUTheme({
+  bibliography: {
+    entries: {
+      turing1950: {
+        author: "Turing, Alan M.",
+        title: "Computing Machinery and Intelligence",
+        journal: "Mind",
+        year: "1950"
+      }
+    }
+  }
+});
+
+slide("引用示例",
+  text(\`文献 \${cite("turing1950")}，脚注\${footnote("脚注内容")}。\`)
+);
+
+// 引用出现后可自动生成参考文献页；
+// 也可以手动加入 bibliographySlide()。`),
+          list("`cite(key)` 生成文献编号链接。", "`footnote(text)` 在当前页底部生成脚注。", "`bibliographySlide()` 可手动插入参考文献页。")
+        ),
+
+        slide("文献与脚注：结果", { layout: "two" },
+          text(`文献 ${cite("turing1950")}，脚注${footnote("脚注内容")}。`),
+          note("参考文献页", "如果配置了 bibliography entries，模板会在结尾自动追加参考文献页。")
         ),
 
         subsection("公式对比"),
