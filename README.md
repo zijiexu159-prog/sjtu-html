@@ -1,190 +1,183 @@
-# SJTU HTML PPT 模板
+# SJTU HTML PPT Template
 
-这是一个可独立发布的上海交通大学风格 HTML 演示文稿模板。它保留了直接写 HTML/JS 的入口，也提供了更接近 Markdown / Typst 的 `.sjtu.md` 写稿方式，适合把论文笔记、MinerU 解析文本或 Touying 示例快速转成可演示的网页幻灯片。
+SJTU HTML PPT Template is a standalone HTML presentation template with a Shanghai Jiao Tong University inspired visual style. It supports both direct JavaScript slide authoring and a lightweight Markdown-like `.sjtu.md` workflow for users who prefer writing slide content as text.
 
-## 目录结构
+中文说明见 [README_zh.md](README_zh.md).
 
-- `core/`：模板核心库、样式和构建脚本。
-- `direct-html/`：直接用 JavaScript 写 slides 数组的示例和说明书。
-- `markdown/`：类 Markdown 源稿与对应生成的 HTML。
-- `assets/`：模板图片、SJTU VI 素材和示例图。
-- `reference/`：命令、函数和 CSS 参考。
-- `skills/`：给 Codex 使用的转换与排版 skill。
+## Use And Disclaimer
 
-## 快速开始
+This repository is a personal learning project. It is maintained on a best-effort basis, and updates may not be timely or synchronized with upstream projects, official SJTU visual identity materials, browser changes, or related presentation libraries.
 
-推荐从类 Markdown 入口开始：
+This template is not an official Shanghai Jiao Tong University product, template, or visual identity package, and it is not endorsed by Shanghai Jiao Tong University. It is provided solely for non-commercial academic presentation preparation by students of Shanghai Jiao Tong University. Commercial use, redistribution as a commercial template, or use in a way that suggests official authorization is not intended.
+
+Users are responsible for checking whether their final presentation satisfies the requirements of their course, supervisor, department, event, or institution.
+
+## Features
+
+- SJTU-style title pages, outline pages, section pages, headers, footers, and ending pages.
+- Direct HTML/JavaScript authoring through helper functions such as `slide()`, `theorem()`, `formula()`, `figure()`, and `columns()`.
+- Markdown-like `.sjtu.md` authoring for users who do not want to write JavaScript.
+- MathJax formulas with labels, numbering, references, and formula pause effects.
+- Figure labels, figure references, click-to-zoom images, and return-to-reference navigation with `R`.
+- BibTeX citation support through `@cite:key`, automatic bibliography slides, and inline `.bib` embedding during build.
+- Per-slide footnotes through `[^id]` and `[^id]: footnote text`.
+- Page transitions, fragment reveal animations, fixed column slots, object-internal columns, and move-between animations.
+- Speaker notes toggled with `N`.
+- Print/PDF export support through the browser.
+
+## Project Structure
+
+```text
+html-template/
+  assets/          Static images, SJTU VI assets, and example figures
+  core/            Runtime CSS, JavaScript helpers, and the markup builder
+  direct-html/     Direct JavaScript examples and manual
+  markdown/        .sjtu.md sources and generated HTML examples
+  reference/       API and CSS reference
+  skills/          Codex skills for conversion and layout polishing
+```
+
+## Quick Start
+
+From the repository root:
 
 ```powershell
-cd html-template
 node core/build-sjtu-markup.js markdown/example.sjtu.md markdown/example.html
 ```
 
-然后直接用浏览器打开 `markdown/example.html`。完整示例可以生成：
+Open `markdown/example.html` in a browser.
+
+To rebuild all bundled Markdown examples:
 
 ```powershell
-node core/build-sjtu-markup.js markdown/touying-main-complete.sjtu.md markdown/touying-main-complete.html
+node core/build-sjtu-markup.js markdown/example.sjtu.md markdown/example.html
 node core/build-sjtu-markup.js markdown/manual.sjtu.md markdown/manual.html
+node core/build-sjtu-markup.js markdown/touying-main-complete.sjtu.md markdown/touying-main-complete.html
 ```
 
-如果安装了 npm，也可以使用：
+If `npm` is available:
 
 ```powershell
 npm run build
 ```
 
-## 两种写法
-
-直接 HTML/JS 写法适合熟悉 JavaScript 的场景：
-
-- `direct-html/index.html`
-- `direct-html/basic.html`
-- `direct-html/basic-slides.js`
-- `direct-html/manual.html`
-
-类 Markdown 写法适合主要写内容、不想碰 JS 的场景：
-
-- `markdown/example.sjtu.md`
-- `markdown/manual.sjtu.md`
-- `markdown/touying-main-complete.sjtu.md`
-
-## 常用类 Markdown 语法
+## Markdown-Like Authoring
 
 ```markdown
-% title: 我的报告
-% subtitle: 答辩报告
-% author: 张三
-% footer: 上海交通大学
+% title: My Talk
+% subtitle: Defense Presentation
+% author: Your Name
+% footer: Shanghai Jiao Tong University
 % transition: fade
 % bibliography: references.bib
 
-# 研究背景
-## 模型建立
+# Background
+## Model
 
---- 控制方程[2][0.45,0.55][transition=rise]
+--- Control Equation[2][0.45,0.55][transition=rise]
 
-### 左侧说明[fade-up]
-- 研究对象
-- 建模假设
+### Motivation[fade-up]
+- Research object
+- Modeling assumptions
 
 ||
 
-### 右侧公式[zoom]
+### Equation[zoom]
 $$ {#eq:model}
 u_t + u u_x = \nu u_{xx}
 $$
 
-由 @eq:model 可得到能量估计。
-文献引用写作 @cite:turing1950，脚注写作这样[^note-demo]。
+According to @eq:model and @cite:turing1950, we obtain the main estimate.[^note]
 
-::: theorem 局部存在性
-在适当初值条件下，解局部存在。
-:::
+![Phase portrait](../assets/figures/三重根.svg){#fig:phase}
 
-![相图](../assets/figures/三重根.svg){#fig:phase}
+See @fig:phase.
 
-参见 @fig:phase。
-
-[^note-demo]: 这条脚注只会显示在当前页底部。
+[^note]: This is a slide-level footnote.
 ```
 
-## 分栏与内容块
+## Bibliography And Footnotes
 
-- `--- 标题[1]`：单栏页面。
-- `--- 标题[2][0.4,0.6]`：两栏页面，并指定宽度比例。
-- `||`：切换到下一页级栏目。
-- `||[2][0.35,0.65]`：为当前栏目预设两个纵向内容槽。
-- `|||`：在当前内容块内部继续分栏。
-- `### 名称[动画]`：创建一个内容块；名称只用于源稿组织，不显示。
-- `#### 名称[1-2]`：创建同一内容块的 step 内容，可控制出现步数。
-- `#v(1em)`：手动插入竖向间距。
-
-## 动画
-
-页面切换动画可在开头设置默认值：
-
-```markdown
-% transition: fade
-```
-
-单页可以覆盖：
-
-```markdown
---- 关键结论[2][transition=zoom]
-```
-
-内容块动画写在 `###` 或 `####` 后：
-
-```markdown
-### 结论卡片[slide-right]
-#### 第二步[2][zoom]
-```
-
-支持的常用效果包括 `fade`、`fade-up`、`slide-left`、`slide-right`、`zoom`、`blur`、`move-between`。更完整的写法见 `reference/api-css-reference.md` 和 `markdown/manual.html`。
-
-## 公式、图片和引用
-
-普通公式不会自动加框：
-
-```markdown
-$$ {#eq:plain}
-E = mc^2
-$$
-```
-
-需要公式框时显式使用：
-
-```markdown
-::: formula 控制方程
-$$ {#eq:burgers}
-u_t + u u_x = \nu u_{xx}
-$$
-:::
-```
-
-公式引用使用 `@eq:burgers`，图片引用使用 `@fig:phase`。点击引用会跳转到对应页面，按 `R` 可返回跳转前的位置。
-
-文献引用使用 `@cite:key`，在文件头写 `% bibliography: references.bib` 后，构建脚本会把 `.bib` 内联进 HTML 并自动生成参考文献页。脚注使用 `[^id]`，脚注定义使用 `[^id]: 脚注内容`。
-
-## 参考文献页
-
-默认情况下，只要正文出现 `@cite:key`，模板会自动在结尾追加“参考文献”页。常用配置：
+Add a BibTeX file relative to the `.sjtu.md` source:
 
 ```markdown
 % bibliography: references.bib
-% bibliography-title: 参考文献
+```
+
+Use citations in text:
+
+```markdown
+See @cite:turing1950.
+```
+
+The builder embeds the `.bib` contents into the generated HTML. A bibliography slide is generated automatically when citations are used.
+
+Useful options:
+
+```markdown
+% bibliography-title: References
 % bibliography-position: last
 % bibliography-include-uncited: false
 ```
 
-如果你希望 Thanks 页仍然是最后一页，可写：
+Use `% bibliography-position: before-end` if you want the bibliography before the final Thanks slide.
+
+Footnotes use standard Markdown-like labels:
 
 ```markdown
-% bibliography-position: before-end
+This sentence has a footnote.[^demo]
+
+[^demo]: Footnotes are shown at the bottom of the current slide.
 ```
 
-## 路径约定
+## Direct JavaScript Authoring
 
-项目现在是独立子项目，不再依赖外层 `touying-sjtu`：
+```html
+<link rel="stylesheet" href="../core/sjtu-ppt.css">
+<script src="../core/sjtu-ppt-core.js"></script>
+<script>
+configureSJTUTheme({
+  info: {
+    title: "My Talk",
+    author: "Your Name"
+  },
+  bibliography: {
+    entries: {
+      turing1950: {
+        author: "Turing, Alan M.",
+        title: "Computing Machinery and Intelligence",
+        journal: "Mind",
+        year: "1950"
+      }
+    }
+  }
+});
 
-- CSS/JS 固定从 `core/` 引入。
-- 示例图片固定放在 `assets/`。
-- Markdown 页面内引用图片时，路径相对生成后的 HTML，例如 `../assets/thumbnail.png`。
+const slides = [
+  titleSlide(),
+  outlineSlide(),
+  sectionSlide("Model"),
+  subsection("Equation"),
+  slide("Control Equation",
+    formula("Equation", "$$u_t + u u_x = \\nu u_{xx}$$"),
+    text(`Citation ${cite("turing1950")} and footnote${footnote("A slide-level note")}.`)
+  ),
+  endSlide()
+];
 
-## 独立 Git
-
-`html-template` 可以作为单独仓库初始化和上传；不要把外层 `touying-sjtu` 当作这次发布目标。
-
-```powershell
-cd html-template
-git init
-git add .
-git commit -m "Initial SJTU HTML PPT template"
+bootstrapSJTUDeck(slides);
+</script>
 ```
 
-推送到 GitHub 时再添加你自己的远端地址：
+## Navigation
 
-```powershell
-git remote add origin https://github.com/<user>/<repo>.git
-git push -u origin main
-```
+- Arrow keys, PageUp/PageDown, Space, and Backspace move through slides and fragments.
+- `F` toggles fullscreen.
+- `N` toggles speaker notes.
+- `R` returns to the previous reference source after jumping through a formula, figure, or citation reference.
+- `P` opens the browser print workflow.
+
+## License And Assets
+
+This repository contains template code and example assets for personal, non-commercial academic use. Before publishing or redistributing slides, verify that any included images, logos, visual identity materials, fonts, figures, and bibliography data may be used in your context.
+
