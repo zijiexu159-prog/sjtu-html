@@ -846,7 +846,8 @@ button {
 }
 
 .equation-ref,
-.figure-ref {
+.figure-ref,
+.citation-ref {
   color: var(--sjtu-red-dark);
   font-weight: 700;
   text-decoration-color: rgba(159, 16, 24, 0.35);
@@ -854,9 +855,55 @@ button {
 }
 
 .equation-ref.is-missing,
-.figure-ref.is-missing {
+.figure-ref.is-missing,
+.citation-ref.is-missing {
   color: #8b7771;
   text-decoration: wavy underline rgba(201, 20, 30, 0.45);
+}
+
+.footnote-ref {
+  margin-left: 0.08em;
+  color: var(--sjtu-red-dark);
+  font-size: 0.58em;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: super;
+}
+
+.footnote-ref a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.slide-footnotes {
+  margin-top: 0.7rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(201, 20, 30, 0.16);
+  color: #6f5c56;
+  font-family: "LXGW WenKai Mono", "Microsoft YaHei", sans-serif;
+  font-size: clamp(0.58rem, 0.72vw, 0.82rem);
+  line-height: 1.35;
+}
+
+.slide-footnotes ol {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.22rem;
+  list-style: none;
+}
+
+.slide-footnotes li {
+  display: grid;
+  grid-template-columns: 1.8em 1fr;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.footnote-number {
+  color: var(--sjtu-red-dark);
+  font-weight: 800;
+  text-align: right;
 }
 
 .figure-card {
@@ -1113,6 +1160,48 @@ button {
   font-size: clamp(2.2rem, 4.5vw, 5.2rem);
   line-height: 1.14;
   font-weight: 800;
+}
+
+.bibliography-slide {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bibliography-list {
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 0.62rem;
+  list-style: none;
+  counter-reset: bibliography;
+}
+
+.bibliography-list li {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr);
+  gap: 0.55rem;
+  padding: 0.58rem 0.72rem;
+  border-left: 0.18rem solid rgba(201, 20, 30, 0.62);
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(201, 20, 30, 0.065), rgba(255, 255, 255, 0));
+  color: #332825;
+  font-size: clamp(0.72rem, 0.92vw, 1rem);
+  line-height: 1.32;
+}
+
+.bib-number {
+  color: var(--sjtu-red-dark);
+  font-family: "Libertinus Serif", "Times New Roman", serif;
+  font-weight: 800;
+}
+
+.bib-body {
+  min-width: 0;
 }
 
 .end-wrap {

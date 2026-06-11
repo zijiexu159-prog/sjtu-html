@@ -26,6 +26,10 @@ npm run check:js
 % date: 日期
 % footer: 页脚
 % transition: fade
+% bibliography: references.bib
+% bibliography-title: 参考文献
+% bibliography-position: last
+% bibliography-include-uncited: false
 % title-slide: false
 % outline: false
 % end-slide: false
@@ -87,8 +91,47 @@ $$
 - `![说明](../assets/figures/a.svg){#fig:name}`：给图片加标签。
 - `@eq:name`：引用公式。
 - `@fig:name`：引用图片。
+- `@cite:key`：引用 BibTeX 条目。
+- `[^id]`：脚注引用。
+- `[^id]: 脚注内容`：脚注定义。
 - 点击引用会跳转到目标页。
 - 按 `R` 返回上一次引用跳转前的位置。
+
+## BibTeX
+
+在 `.sjtu.md` 文件头写：
+
+```markdown
+% bibliography: references.bib
+```
+
+构建脚本会读取相对 `.sjtu.md` 源稿的 `.bib` 文件，并把内容内联到生成后的 HTML。正文中只要出现 `@cite:key`，模板会自动生成参考文献页。
+
+可选配置：
+
+- `% bibliography-title: 参考文献`：修改参考文献页标题。
+- `% bibliography-position: last`：参考文献页放在整份报告最后。
+- `% bibliography-position: before-end`：参考文献页放在 Thanks 页前。
+- `% bibliography-include-uncited: true`：列出 bib 文件中未被引用的条目。
+
+直接 HTML/JS 写法也可以配置：
+
+```js
+configureSJTUTheme({
+  bibliography: {
+    entries: {
+      turing1950: {
+        author: "Turing, Alan M.",
+        title: "Computing Machinery and Intelligence",
+        journal: "Mind",
+        year: "1950"
+      }
+    }
+  }
+});
+
+slide("引用示例", text(`文献 ${cite("turing1950")} 与脚注${footnote("脚注内容")}。`));
+```
 
 ## 动画
 
@@ -136,6 +179,7 @@ $$
 - `subsection(title)` / `subsectionSlide(title)`：设置小节上下文。
 - `slide(titleOrOptions, ...fragments)`：内容页。
 - `endSlide(text)`：结束页。
+- `bibliographySlide(options)`：手动插入参考文献页。
 - `list(...items)`：列表。
 - `figure(label, options)`：图片。
 - `formula(title, body, options)`：公式框。
@@ -153,6 +197,8 @@ $$
 - `equationCompare(left, right, options)`：公式比较。
 - `eqRef(label, text)`：公式引用。
 - `figureRef(label, text)`：图片引用。
+- `cite(key, text)`：文献引用。
+- `footnote(body, id)`：脚注。
 - `frag(content, options)`：手动 fragment。
 - `uncover(step, content, options)`：指定某步后显示。
 - `only(step, content, options)`：仅某步显示。
@@ -179,6 +225,9 @@ $$
 - `.plain-formula`：普通公式。
 - `.figure-card`：图片。
 - `.figure-zoom-overlay`：图片放大浮层。
+- `.citation-ref`：文献引用链接。
+- `.slide-footnotes`：页内脚注区。
+- `.bibliography-list`：参考文献列表。
 
 主题变量：
 
@@ -219,4 +268,3 @@ $$
 
 - 核心 CSS/JS：`../core/...`
 - 图片资源：`../assets/...`
-

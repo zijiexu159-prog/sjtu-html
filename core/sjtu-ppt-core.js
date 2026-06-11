@@ -5,6 +5,14 @@ const sjtuTheme = mergeTheme({
     local: "vendor/mathjax/tex-svg.js",
     cdn: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js",
   },
+  bibliography: {
+    title: "参考文献",
+    auto: true,
+    position: "last",
+    includeUncited: false,
+    entries: [],
+    source: "",
+  },
   cssVars: {},
   info: {
     title: "SJTU HTML PPT",
@@ -91,6 +99,12 @@ function endSlide(text = "Thanks for Listening!") {
   return { type: "end", text };
 }
 
+function bibliographySlide(options = {}) {
+  if (Array.isArray(options)) options = { entries: options };
+  if (typeof options === "string") options = { title: options };
+  return { type: "bibliography", title: "参考文献", ...options };
+}
+
 function list(...items) {
   return { kind: "list", items: items.flat() };
 }
@@ -138,6 +152,8 @@ function block(kind, title, body, options = {}) {
 const formula = (title, body, options = {}) => block("formula", title, body, { ...sjtuDefaults.formula, ...options });
 const eqRef = (label, text = "") => `[[eqref:${label}|${text}]]`;
 const figureRef = (label, text = "") => `[[figref:${label}|${text}]]`;
+const cite = (key, text = "") => `[[cite:${key}|${text}]]`;
+const footnote = (body, id = "") => `[[footnote:${encodeURIComponent(String(id || ""))}:${encodeURIComponent(String(body || ""))}]]`;
 const theorem = (title, body, options = {}) => block("theorem", title, body, options);
 const example = (title, body, options = {}) => block("example", title, body, options);
 const definition = (title, body, options = {}) => block("definition", title, body, options);
@@ -184,8 +200,12 @@ function bootstrapSJTUDeck(slides) {
   configureSJTUTheme(window.sjtuTheme || {});
   loadSJTuMathJax();
   slides = normalizeDeck(slides);
+  const bibliographyEntries = getBibliographyEntryMap();
+  slides = appendAutoBibliographySlide(slides, bibliographyEntries);
+  slides = normalizeDeck(slides);
   const equationRegistry = collectEquationRegistry(slides);
   const figureRegistry = collectFigureRegistry(slides);
+  const citationRegistry = collectCitationRegistry(slides, bibliographyEntries);
   const deck = document.querySelector("#deck");
   const status = document.querySelector("#slide-status");
   const prevButton = document.querySelector("#prev-slide");
@@ -195,6 +215,7 @@ function bootstrapSJTUDeck(slides) {
   const state = { index: 0, step: 0, renderedIndex: -1 };
   const notesPanel = createSpeakerNotesPanel();
   const referenceReturnStack = [];
+  let currentFootnotes = null;
 
   function collectSections(items) {
     const map = new Map();
@@ -243,6 +264,7 @@ function bootstrapSJTUDeck(slides) {
     if (item.type === "section") return renderSection(item);
     if (item.type === "focus") return `<div class="focus-copy">${escapeHtml(item.text)}</div>`;
     if (item.type === "end") return renderEnd(item);
+    if (item.type === "bibliography") return renderBibliographySlide(item, index);
     return renderContentSlide(item, index);
   }
 
@@ -303,12 +325,35 @@ function bootstrapSJTUDeck(slides) {
 
 function renderContentSlide(item, index) {
     const fragments = getVisualFragments(item);
+    const slideFootnotes = [];
+    const previousFootnotes = currentFootnotes;
+    currentFootnotes = slideFootnotes;
+    const grid = fragments.map((fragment, fragmentIndex) => renderFragment(fragment, fragmentIndex)).join("");
+    currentFootnotes = previousFootnotes;
     return `
       ${renderMiniSlides(item)}
       <div class="slide-body">
         ${renderSlideTitleBlock(item)}
         <div class="content-grid ${escapeHtml(item.layout || "one")}" ${renderContentGridStyle(item)}>
-          ${fragments.map((fragment, fragmentIndex) => renderFragment(fragment, fragmentIndex)).join("")}
+          ${grid}
+        </div>
+        ${renderSlideFootnotes(slideFootnotes)}
+      </div>
+      ${renderFooter(index)}
+    `;
+  }
+
+  function renderBibliographySlide(item, index) {
+    const entries = getBibliographyItems(item, bibliographyEntries);
+    return `
+      <div class="bibliography-slide">
+        <div class="slide-body">
+          <div class="slide-title-block">
+            <h1 class="slide-title">${escapeHtml(item.title || sjtuTheme.bibliography.title || "参考文献")}</h1>
+          </div>
+          <ol class="bibliography-list">
+            ${entries.map((entry) => renderBibliographyItem(entry)).join("")}
+          </ol>
         </div>
       </div>
       ${renderFooter(index)}
@@ -378,6 +423,44 @@ function renderContentSlide(item, index) {
         <span>${index + 1} / ${slides.length}</span>
       </footer>
     `;
+  }
+
+  function renderSlideFootnotes(footnotes = []) {
+    if (!footnotes.length) return "";
+    const previousFootnotes = currentFootnotes;
+    currentFootnotes = null;
+    const items = footnotes.map((note) => `
+      <li id="${escapeAttribute(note.id)}">
+        <span class="footnote-number">${note.number}</span>
+        <span>${renderRichText(note.body)}</span>
+      </li>
+    `).join("");
+    currentFootnotes = previousFootnotes;
+    return `<aside class="slide-footnotes"><ol>${items}</ol></aside>`;
+  }
+
+  function renderBibliographyItem(item) {
+    const entry = item.entry || {};
+    const key = item.key || entry.key || "";
+    const id = `bib-${safeDomId(key || item.number)}`;
+    return `
+      <li id="${id}">
+        <span class="bib-number">[${item.number}]</span>
+        <span class="bib-body">${escapeHtml(formatBibliographyEntry(entry, key))}</span>
+      </li>
+    `;
+  }
+
+  function getBibliographyItems(item, entries) {
+    const keys = item.keys?.length ? item.keys : collectCitedKeys(slides);
+    const selected = keys.length
+      ? keys
+      : Array.from(entries.keys());
+    return selected.map((key, index) => ({
+      key,
+      number: citationRegistry.get(key)?.number || index + 1,
+      entry: entries.get(key) || { key, title: key },
+    }));
   }
 
   function renderFragment(fragment, index) {
@@ -613,6 +696,15 @@ function renderContentSlide(item, index) {
         if (!figure) return `<span class="figure-ref is-missing">${escapeHtml(text)}</span>`;
         return `<a class="figure-ref sjtu-ref" href="#slide-${figure.slideIndex + 1}.${figure.appear}">${escapeHtml(text)}</a>`;
       })
+      .replace(/\[\[cite:([^|\]]+)\|([^\]]*)\]\]/g, (_, key, customText) => {
+        const citation = citationRegistry.get(key);
+        const text = customText || (citation ? `[${citation.number}]` : "[?]");
+        if (!citation) return `<span class="citation-ref is-missing">${escapeHtml(text)}</span>`;
+        return `<a class="citation-ref sjtu-ref" href="#slide-${citation.slideIndex + 1}.${citation.appear}">${escapeHtml(text)}</a>`;
+      })
+      .replace(/\[\[footnote:([^:\]]*):([^\]]*)\]\]/g, (_, encodedId, encodedBody) => {
+        return renderFootnoteReference(decodeInline(encodedId), decodeInline(encodedBody));
+      })
       .replace(/\[\[sjtu:([^:]+):([^:\]]*)(?::([^\]]*))?\]\]/g, (_, kind, encodedBody, encodedExtra) => {
         const body = escapeHtml(decodeInline(encodedBody));
         const extra = decodeInline(encodedExtra || "");
@@ -622,6 +714,24 @@ function renderContentSlide(item, index) {
         return body;
       });
     return renderInlineDollarMath(rendered);
+  }
+
+  function renderFootnoteReference(id = "", body = "") {
+    const key = id || body;
+    if (!currentFootnotes || !body) {
+      return `<sup class="footnote-ref">${escapeHtml(id || "*")}</sup>`;
+    }
+    let note = currentFootnotes.find((item) => item.key === key);
+    if (!note) {
+      note = {
+        key,
+        body,
+        number: currentFootnotes.length + 1,
+        id: `fn-${safeDomId(key || currentFootnotes.length + 1)}`,
+      };
+      currentFootnotes.push(note);
+    }
+    return `<sup class="footnote-ref"><a href="#${escapeAttribute(note.id)}">${note.number}</a></sup>`;
   }
 
   function buildContentSlideTitle(subsection, title, section) {
@@ -1092,6 +1202,224 @@ function collectFigureRegistry(slides) {
   return registry;
 }
 
+function collectCitationRegistry(slides, bibliographyEntries = new Map()) {
+  const registry = new Map();
+  const bibliographyIndex = Math.max(0, slides.findIndex((item) => item.type === "bibliography"));
+  const keys = collectBibliographyKeys(slides, bibliographyEntries);
+  keys.forEach((key, index) => {
+    const entry = bibliographyEntries.get(key) || { key, title: key };
+    registry.set(key, {
+      key,
+      entry,
+      number: index + 1,
+      slideIndex: bibliographyIndex,
+      appear: 0,
+    });
+  });
+  return registry;
+}
+
+function appendAutoBibliographySlide(slides, bibliographyEntries = new Map()) {
+  const config = sjtuTheme.bibliography || {};
+  if (config.auto === false || slides.some((item) => item.type === "bibliography")) return slides;
+  const keys = collectBibliographyKeys(slides, bibliographyEntries);
+  if (!keys.length) return slides;
+  const item = bibliographySlide({
+    title: config.title || "参考文献",
+    keys,
+    entries: bibliographyEntries,
+  });
+  if (config.position === "before-end") {
+    const endIndex = slides.findLastIndex?.((slideItem) => slideItem.type === "end") ?? findLastSlideIndex(slides, "end");
+    if (endIndex >= 0) {
+      return [...slides.slice(0, endIndex), item, ...slides.slice(endIndex)];
+    }
+  }
+  return [...slides, item];
+}
+
+function findLastSlideIndex(items, type) {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (items[index]?.type === type) return index;
+  }
+  return -1;
+}
+
+function collectBibliographyKeys(slides, bibliographyEntries = new Map()) {
+  const config = sjtuTheme.bibliography || {};
+  const seen = new Set();
+  const keys = [];
+  const add = (key) => {
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    keys.push(key);
+  };
+  collectCitedKeys(slides).forEach(add);
+  if (config.includeUncited) Array.from(bibliographyEntries.keys()).forEach(add);
+  return keys;
+}
+
+function collectCitedKeys(value) {
+  const keys = [];
+  const seen = new Set();
+  const add = (key) => {
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    keys.push(key);
+  };
+  const scan = (entry) => {
+    if (entry == null) return;
+    if (typeof entry === "string") {
+      for (const match of entry.matchAll(/\[\[cite:([^|\]]+)\|[^\]]*\]\]/g)) add(match[1]);
+      return;
+    }
+    if (Array.isArray(entry)) {
+      entry.forEach(scan);
+      return;
+    }
+    if (typeof entry === "object") {
+      if (entry.type === "bibliography") return;
+      Object.values(entry).forEach(scan);
+    }
+  };
+  scan(value);
+  return keys;
+}
+
+function getBibliographyEntryMap() {
+  const config = sjtuTheme.bibliography || {};
+  const map = new Map();
+  const addEntry = (key, entry = {}) => {
+    if (!key) return;
+    map.set(String(key), { key: String(key), ...entry });
+  };
+  const source = [window.sjtuBibSource, config.source].filter(Boolean).join("\n\n");
+  parseBibTeX(source).forEach((entry, key) => addEntry(key, entry));
+  normalizeBibliographyEntries(window.sjtuBibEntries).forEach((entry, key) => addEntry(key, entry));
+  normalizeBibliographyEntries(config.entries).forEach((entry, key) => addEntry(key, entry));
+  return map;
+}
+
+function normalizeBibliographyEntries(entries) {
+  const map = new Map();
+  if (!entries) return map;
+  if (entries instanceof Map) return new Map(entries);
+  if (Array.isArray(entries)) {
+    entries.forEach((entry) => {
+      const key = entry?.key || entry?.id;
+      if (key) map.set(String(key), { ...entry, key: String(key) });
+    });
+    return map;
+  }
+  if (typeof entries === "object") {
+    Object.entries(entries).forEach(([key, entry]) => {
+      map.set(key, typeof entry === "string" ? { key, title: entry } : { key, ...entry });
+    });
+  }
+  return map;
+}
+
+function parseBibTeX(source = "") {
+  const map = new Map();
+  const text = String(source || "");
+  let index = 0;
+  while (index < text.length) {
+    const at = text.indexOf("@", index);
+    if (at < 0) break;
+    const head = text.slice(at).match(/^@(\w+)\s*\{\s*([^,\s]+)\s*,/);
+    if (!head) {
+      index = at + 1;
+      continue;
+    }
+    const type = head[1].toLowerCase();
+    const key = head[2].trim();
+    const bodyStart = at + head[0].length;
+    let depth = 1;
+    let cursor = bodyStart;
+    let quote = false;
+    while (cursor < text.length && depth > 0) {
+      const char = text[cursor];
+      const prev = text[cursor - 1];
+      if (char === '"' && prev !== "\\") quote = !quote;
+      if (!quote && char === "{") depth += 1;
+      if (!quote && char === "}") depth -= 1;
+      cursor += 1;
+    }
+    const body = text.slice(bodyStart, cursor - 1);
+    map.set(key, { key, type, ...parseBibFields(body) });
+    index = cursor;
+  }
+  return map;
+}
+
+function parseBibFields(body = "") {
+  const fields = {};
+  let index = 0;
+  while (index < body.length) {
+    const match = body.slice(index).match(/^\s*,?\s*([\w-]+)\s*=\s*/);
+    if (!match) break;
+    const name = match[1].toLowerCase();
+    index += match[0].length;
+    const parsed = readBibValue(body, index);
+    fields[name] = cleanBibValue(parsed.value);
+    index = parsed.next;
+  }
+  return fields;
+}
+
+function readBibValue(body, start) {
+  let index = start;
+  const open = body[index];
+  if (open === "{" || open === '"') {
+    const close = open === "{" ? "}" : '"';
+    let depth = open === "{" ? 1 : 0;
+    index += 1;
+    const valueStart = index;
+    while (index < body.length) {
+      const char = body[index];
+      const prev = body[index - 1];
+      if (open === "{" && char === "{") depth += 1;
+      if (open === "{" && char === "}") {
+        depth -= 1;
+        if (depth === 0) break;
+      }
+      if (open === '"' && char === close && prev !== "\\") break;
+      index += 1;
+    }
+    return { value: body.slice(valueStart, index), next: index + 1 };
+  }
+  const end = body.slice(index).search(/\s*,/);
+  if (end < 0) return { value: body.slice(index), next: body.length };
+  return { value: body.slice(index, index + end), next: index + end + 1 };
+}
+
+function cleanBibValue(value = "") {
+  return String(value)
+    .replace(/[{}]/g, "")
+    .replace(/\\&/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatBibliographyEntry(entry = {}, fallbackKey = "") {
+  const author = formatBibAuthors(entry.author || entry.editor || "");
+  const title = entry.title || fallbackKey || entry.key || "";
+  const venue = entry.journal || entry.booktitle || entry.publisher || "";
+  const year = entry.year || "";
+  const volume = entry.volume ? ` ${entry.volume}` : "";
+  const number = entry.number ? `(${entry.number})` : "";
+  const pages = entry.pages ? `: ${entry.pages}` : "";
+  const doi = entry.doi ? ` doi:${entry.doi}` : "";
+  const url = !doi && entry.url ? ` ${entry.url}` : "";
+  return [author, title, [venue, volume, number, pages].join(""), year].filter(Boolean).join(". ") + (doi || url);
+}
+
+function formatBibAuthors(author = "") {
+  const parts = String(author).split(/\s+and\s+/i).map((item) => item.trim()).filter(Boolean);
+  if (parts.length <= 3) return parts.join(", ");
+  return `${parts.slice(0, 3).join(", ")} et al.`;
+}
+
 function getFigureRefKey(fragment) {
   return fragment.ref || fragment.figureRef || fragment.tag || "";
 }
@@ -1231,7 +1559,7 @@ function highlightCode(body = "", language = "text") {
     return token;
   });
   escaped = escaped.replace(/\b(const|let|var|function|return|if|else|for|while|new|class|extends|import|from|export|await|async|true|false|null|undefined)\b/g, '<span class="code-keyword">$1</span>');
-  escaped = escaped.replace(/\b(setDefaults|titleSlide|outlineSlide|sectionSlide|subsectionSlide|subsection|slide|oneSlide|twoSlide|asideSlide|text|strong|emph|muted|mark|inlineMath|link|list|figure|formula|eqRef|figureRef|theorem|example|definition|alertBlock|note|proof|columns|columnFlow|contentGroup|stepVariant|vSpace|grid|equationCompare|quoteBlock|pause|frag|uncover|only|moveBetween|speakerNotes|configureSJTUTheme|setSlideTransition|bootstrapSJTUDeck)\b/g, '<span class="code-call">$1</span>');
+  escaped = escaped.replace(/\b(setDefaults|titleSlide|outlineSlide|sectionSlide|subsectionSlide|subsection|slide|oneSlide|twoSlide|asideSlide|bibliographySlide|text|strong|emph|muted|mark|inlineMath|link|list|figure|formula|eqRef|figureRef|cite|footnote|theorem|example|definition|alertBlock|note|proof|columns|columnFlow|contentGroup|stepVariant|vSpace|grid|equationCompare|quoteBlock|pause|frag|uncover|only|moveBetween|speakerNotes|configureSJTUTheme|setSlideTransition|bootstrapSJTUDeck)\b/g, '<span class="code-call">$1</span>');
   escaped = escaped.replace(/(\/\/.*)$/gm, '<span class="code-comment">$1</span>');
   escaped = escaped.replace(/@@SJTU_STRING_(\d+)@@/g, (_, index) => `<span class="code-string">${strings[Number(index)]}</span>`);
   return escaped;
@@ -1400,6 +1728,7 @@ Object.assign(window, {
   asideSlide,
   focusSlide,
   endSlide,
+  bibliographySlide,
   list,
   figure,
   columns,
@@ -1420,6 +1749,8 @@ Object.assign(window, {
   formula,
   eqRef,
   figureRef,
+  cite,
+  footnote,
   theorem,
   example,
   definition,
