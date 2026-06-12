@@ -8,7 +8,7 @@ SJTU HTML PPT Template is a standalone HTML presentation template with a Shangha
 
 This repository is a personal learning project. It is maintained on a best-effort basis, and updates may not be timely or synchronized with upstream projects, official SJTU visual identity materials, browser changes, or related presentation libraries.
 
-This template is not an official Shanghai Jiao Tong University product, template, or visual identity package, and it is not endorsed by Shanghai Jiao Tong University. It is provided solely for non-commercial academic presentation preparation by students of Shanghai Jiao Tong University. Commercial use, redistribution as a commercial template, or use in a way that suggests official authorization is not intended.
+This template is not an official Shanghai Jiao Tong University product, template, or visual identity package, and it is not endorsed by Shanghai Jiao Tong University. It is primarily intended for academic presentation preparation by students of Shanghai Jiao Tong University. Use, modification, and redistribution of the template code are permitted under the MIT License, but users must not imply official authorization or endorsement by Shanghai Jiao Tong University.
 
 Users are responsible for checking whether their final presentation satisfies the requirements of their course, supervisor, department, event, or institution.
 
@@ -179,5 +179,4 @@ bootstrapSJTUDeck(slides);
 
 ## License And Assets
 
-This repository contains template code and example assets for personal, non-commercial academic use. Before publishing or redistributing slides, verify that any included images, logos, visual identity materials, fonts, figures, and bibliography data may be used in your context.
-
+The template code is released under the MIT License. Before publishing or redistributing slides, verify that any included images, logos, visual identity materials, fonts, figures, and bibliography data may be used in your context. The MIT License applies to this repository's code, but it does not automatically grant rights to third-party assets or official visual identity materials.
