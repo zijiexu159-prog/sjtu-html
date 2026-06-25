@@ -101,6 +101,42 @@ Stable ids are recommended for visual editing:
 ![Phase portrait](../assets/figures/example.svg){#fig:phase}
 ```
 
+## Docker
+
+Docker is the easiest way to run the editor on a machine that does not have Node.js installed.
+
+```powershell
+docker compose up --build
+```
+
+Then open `http://127.0.0.1:5174/`.
+
+The compose file mounts `./workspace` on your host to `/workspace` inside the container:
+
+```yaml
+volumes:
+  - ./workspace:/workspace
+```
+
+Files saved by the editor are written back to that local `workspace` folder. Put your `.sjtu.md`, `.layout.json`, images, and bibliography files there before starting the container, or use the editor's `Import Folder` button to upload a project into the workspace.
+
+You can also run the image manually:
+
+```powershell
+docker build -t sjtu-html-editor .
+docker run --rm -p 5174:5174 -v ${PWD}/workspace:/workspace sjtu-html-editor
+```
+
+Useful environment variables:
+
+```text
+HOST=0.0.0.0
+PORT=5174
+SJTU_WORKSPACE=/workspace
+```
+
+If no `.sjtu.md` exists in the mounted workspace, the server seeds a copy of the bundled example. If you use the import-only sandbox flow without a persistent mount, remember to use `Export ZIP` before stopping the container.
+
 ## Markdown-Like Authoring
 
 ```markdown

@@ -8,7 +8,7 @@ const output = path.resolve(outputArg);
 const rawSource = fs.readFileSync(input, "utf8");
 const source = rawSource.replace(/<\/script/gi, "<\\/script");
 const title = source.match(/^%\s*title\s*:\s*(.+)$/m)?.[1] || "SJTU Markup PPT";
-const assetBase = getAssetBase(output);
+const assetBase = process.env.SJTU_ASSET_BASE || getAssetBase(output);
 const bibSource = readBibliographySources(rawSource, input);
 const bibScript = bibSource ? `    <script>window.sjtuBibSource = ${JSON.stringify(bibSource)};</script>\n` : "";
 const layoutInfo = readLayoutPatch(rawSource, input);

@@ -77,9 +77,27 @@ input[type="number"] {
   padding: 0 0.35rem;
 }
 
+input[type="file"] {
+  display: none;
+}
+
 select {
   min-width: 7.6rem;
   padding: 0 0.35rem;
+}
+
+#file-select {
+  min-width: 13rem;
+}
+
+.import-label {
+  height: 2rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--sjtu-red-dark);
+  background: #fff;
+  cursor: pointer;
 }
 
 .muted {

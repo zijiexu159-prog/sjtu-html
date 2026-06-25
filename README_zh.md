@@ -73,6 +73,42 @@ node editor/server.js markdown/example.sjtu.md
 ![相图](../assets/figures/example.svg){#fig:phase}
 ```
 
+## Docker 一键运行
+
+如果不想在本机安装 Node.js，可以直接用 Docker：
+
+```powershell
+docker compose up --build
+```
+
+然后打开 `http://127.0.0.1:5174/`。
+
+`docker-compose.yml` 会把本地的 `./workspace` 挂载到容器里的 `/workspace`：
+
+```yaml
+volumes:
+  - ./workspace:/workspace
+```
+
+因此编辑器保存时，实际写回的是本地 `workspace` 文件夹。你可以先把 `.sjtu.md`、`.layout.json`、图片和 bib 文件放进去再启动，也可以在编辑器里用 `Import Folder` 上传一个项目文件夹。
+
+也可以手动运行镜像：
+
+```powershell
+docker build -t sjtu-html-editor .
+docker run --rm -p 5174:5174 -v ${PWD}/workspace:/workspace sjtu-html-editor
+```
+
+可用环境变量：
+
+```text
+HOST=0.0.0.0
+PORT=5174
+SJTU_WORKSPACE=/workspace
+```
+
+如果挂载目录里没有 `.sjtu.md`，server 会自动放入一份示例。如果你不使用持久化挂载、只通过网页上传文件夹，关闭容器前请点击 `Export ZIP` 导出项目。
+
 ## 两种写法
 
 直接 HTML/JS 写法适合熟悉 JavaScript 的场景：
