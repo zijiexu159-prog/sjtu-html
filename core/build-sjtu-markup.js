@@ -11,6 +11,10 @@ const title = source.match(/^%\s*title\s*:\s*(.+)$/m)?.[1] || "SJTU Markup PPT";
 const assetBase = getAssetBase(output);
 const bibSource = readBibliographySources(rawSource, input);
 const bibScript = bibSource ? `    <script>window.sjtuBibSource = ${JSON.stringify(bibSource)};</script>\n` : "";
+const layoutInfo = readLayoutPatch(rawSource, input);
+const layoutScript = layoutInfo
+  ? `    <script>window.sjtuLayoutPatch = ${JSON.stringify(layoutInfo.patch)}; window.sjtuLayoutPath = ${JSON.stringify(layoutInfo.relativePath)};</script>\n`
+  : "";
 
 const html = `<!doctype html>
 <html lang="zh-CN">
@@ -32,7 +36,7 @@ const html = `<!doctype html>
     </main>
     <script src="${assetBase}sjtu-ppt-core.js"></script>
     <script src="${assetBase}sjtu-markup.js"></script>
-${bibScript}    <script type="text/sjtu-markup">
+${bibScript}${layoutScript}    <script type="text/sjtu-markup">
 ${source}
     </script>
     <script>autoBootstrapSJTUMarkup();</script>
@@ -85,4 +89,23 @@ function readBibliographySources(sourceText, inputFile) {
     chunks.push(fs.readFileSync(fullPath, "utf8"));
   }
   return chunks.join("\n\n");
+}
+
+function readLayoutPatch(sourceText, inputFile) {
+  const inputDir = path.dirname(inputFile);
+  const match = sourceText.replace(/\r\n?/g, "\n").match(/^%\s*layout\s*:\s*(.+)$/m);
+  if (!match) return null;
+  const relativePath = match[1].trim();
+  if (!relativePath) return null;
+  const fullPath = path.resolve(inputDir, relativePath);
+  if (!fs.existsSync(fullPath)) {
+    console.warn(`Warning: layout file not found: ${fullPath}`);
+    return { relativePath, patch: { version: 1, slides: {} } };
+  }
+  try {
+    return { relativePath, patch: JSON.parse(fs.readFileSync(fullPath, "utf8")) };
+  } catch (error) {
+    console.warn(`Warning: failed to parse layout file ${fullPath}: ${error.message}`);
+    return { relativePath, patch: { version: 1, slides: {} } };
+  }
 }

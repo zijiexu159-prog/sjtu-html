@@ -420,11 +420,37 @@ button {
   min-height: 0;
   overflow: auto;
   padding-right: 0.2rem;
+  position: relative;
 }
 
 .content-grid > .fragment {
   min-width: 0;
   min-height: 0;
+}
+
+.content-grid > .fragment.is-layout-patched {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.layout-overlay {
+  position: absolute;
+  box-sizing: border-box;
+  color: var(--ink);
+  pointer-events: auto;
+}
+
+.layout-overlay img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.layout-overlay-rect {
+  border: 2px solid rgba(201, 20, 30, 0.72);
+  background: rgba(201, 20, 30, 0.05);
 }
 
 .content-grid.two {

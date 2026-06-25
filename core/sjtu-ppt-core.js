@@ -244,6 +244,10 @@ function bootstrapSJTUDeck(slides) {
       node.dataset.index = index;
       node.dataset.layout = getLayout(item);
       node.dataset.transition = item.transition || "";
+      node.dataset.editorId = getSlideEditorId(item, index);
+      if (item.sourceStart) node.dataset.sourceStart = item.sourceStart;
+      if (item.sourceEnd) node.dataset.sourceEnd = item.sourceEnd;
+      node.dataset.layoutPath = `slides.${getSlideEditorId(item, index)}`;
       node.innerHTML = renderSlide(prepareSlide(item), index);
       deck.appendChild(node);
     });
@@ -328,7 +332,9 @@ function renderContentSlide(item, index) {
     const slideFootnotes = [];
     const previousFootnotes = currentFootnotes;
     currentFootnotes = slideFootnotes;
-    const grid = fragments.map((fragment, fragmentIndex) => renderFragment(fragment, fragmentIndex)).join("");
+    const slideId = getSlideEditorId(item, index);
+    const grid = fragments.map((fragment, fragmentIndex) => renderFragment(fragment, fragmentIndex, slideId)).join("");
+    const overlays = renderLayoutOverlays(slideId);
     currentFootnotes = previousFootnotes;
     return `
       ${renderMiniSlides(item)}
@@ -336,6 +342,7 @@ function renderContentSlide(item, index) {
         ${renderSlideTitleBlock(item)}
         <div class="content-grid ${escapeHtml(item.layout || "one")}" ${renderContentGridStyle(item)}>
           ${grid}
+          ${overlays}
         </div>
         ${renderSlideFootnotes(slideFootnotes)}
       </div>
@@ -463,20 +470,132 @@ function renderContentSlide(item, index) {
     }));
   }
 
-  function renderFragment(fragment, index) {
-    const effect = fragment.effect || "fade-up";
+  function renderFragment(fragment, index, slideId = "") {
+    const fragmentId = getFragmentEditorId(fragment, index);
+    const layoutEntry = getLayoutFragmentPatch(slideId, fragmentId);
+    const merged = mergeFragmentLayout(fragment, layoutEntry);
+    const effect = merged.effect || "fade-up";
+    const classes = ["fragment", layoutEntry ? "is-layout-patched" : ""].filter(Boolean).join(" ");
     return `
       <div
-        class="fragment"
+        class="${classes}"
         data-fragment="${index}"
-        data-appear="${escapeAttribute(fragment.appear)}"
-        data-disappear="${escapeAttribute(fragment.disappear ?? "")}"
-        data-move-at="${escapeAttribute(fragment.moveAt ?? "")}"
+        data-appear="${escapeAttribute(merged.appear)}"
+        data-disappear="${escapeAttribute(merged.disappear ?? "")}"
+        data-move-at="${escapeAttribute(merged.moveAt ?? "")}"
         data-effect="${escapeAttribute(effect)}"
-        ${renderMotionId(fragment)}
-        style="${renderMotionStyle(fragment)}"
-      >${renderFragmentBody(fragment)}</div>
+        ${renderMotionId(merged)}
+        ${renderEditorDataAttrs(merged, fragmentId, `slides.${slideId}.fragments.${fragmentId}`)}
+        style="${combineInlineStyles(renderMotionStyle(merged), renderLayoutPatchStyle(layoutEntry))}"
+      >${renderFragmentBody(merged)}</div>
     `;
+  }
+
+  function getSlideEditorId(item, index = 0) {
+    return item.editorId || item.id || `slide-${index + 1}`;
+  }
+
+  function getFragmentEditorId(fragment, index = 0) {
+    return fragment.editorId || fragment.ref || fragment.label || fragment.motionId || `fragment-${index + 1}`;
+  }
+
+  function renderEditorDataAttrs(fragment, editorId, layoutPath = "") {
+    return [
+      `data-editor-id="${escapeAttribute(editorId)}"`,
+      fragment.sourceStart ? `data-source-start="${escapeAttribute(fragment.sourceStart)}"` : "",
+      fragment.sourceEnd ? `data-source-end="${escapeAttribute(fragment.sourceEnd)}"` : "",
+      layoutPath ? `data-layout-path="${escapeAttribute(layoutPath)}"` : "",
+    ].filter(Boolean).join(" ");
+  }
+
+  function getLayoutPatch() {
+    const patch = window.sjtuLayoutPatch;
+    return patch && typeof patch === "object" ? patch : {};
+  }
+
+  function getLayoutFragmentPatch(slideId, fragmentId) {
+    return getLayoutPatch()?.slides?.[slideId]?.fragments?.[fragmentId] || null;
+  }
+
+  function mergeFragmentLayout(fragment, layoutEntry) {
+    if (!layoutEntry?.animation) return fragment;
+    return {
+      ...fragment,
+      appear: layoutEntry.animation.appear ?? fragment.appear,
+      disappear: layoutEntry.animation.disappear ?? fragment.disappear,
+      moveAt: layoutEntry.animation.moveAt ?? fragment.moveAt,
+      effect: layoutEntry.animation.effect || fragment.effect,
+      motionId: layoutEntry.animation.motionId || fragment.motionId,
+      from: layoutEntry.animation.from || fragment.from,
+      to: layoutEntry.animation.to || fragment.to,
+    };
+  }
+
+  function renderLayoutPatchStyle(layoutEntry) {
+    if (!layoutEntry) return "";
+    const styles = [];
+    const rect = normalizeLayoutRect(layoutEntry.rect);
+    if (rect) {
+      styles.push(
+        "position:absolute",
+        `left:${rect.x * 100}%`,
+        `top:${rect.y * 100}%`,
+        `width:${rect.w * 100}%`,
+        `min-height:${rect.h * 100}%`
+      );
+    }
+    const fontScale = Number(layoutEntry.fontScale);
+    if (Number.isFinite(fontScale) && fontScale > 0) {
+      styles.push(`font-size:${fontScale}em`);
+    }
+    const zIndex = Number(layoutEntry.zIndex);
+    if (Number.isFinite(zIndex)) styles.push(`z-index:${zIndex}`);
+    return styles.join("; ");
+  }
+
+  function combineInlineStyles(...styles) {
+    return styles.filter(Boolean).join("; ");
+  }
+
+  function normalizeLayoutRect(rect) {
+    if (!rect || typeof rect !== "object") return null;
+    const x = Number(rect.x);
+    const y = Number(rect.y);
+    const w = Number(rect.w);
+    const h = Number(rect.h);
+    if (![x, y, w, h].every(Number.isFinite)) return null;
+    return {
+      x: clampNumber(x, -0.5, 1.5),
+      y: clampNumber(y, -0.5, 1.5),
+      w: clampNumber(w, 0.02, 1.5),
+      h: clampNumber(h, 0.02, 1.5),
+    };
+  }
+
+  function renderLayoutOverlays(slideId) {
+    const overlays = getLayoutPatch()?.slides?.[slideId]?.overlays;
+    if (!Array.isArray(overlays) || !overlays.length) return "";
+    return overlays.map((overlay, index) => renderLayoutOverlay(slideId, overlay, index)).join("");
+  }
+
+  function renderLayoutOverlay(slideId, overlay, index) {
+    const id = overlay.id || `overlay-${index + 1}`;
+    const style = renderLayoutPatchStyle(overlay);
+    const body = overlay.type === "image" && overlay.src
+      ? `<img src="${escapeAttribute(overlay.src)}" alt="${escapeAttribute(overlay.alt || "")}">`
+      : escapeHtml(overlay.text || "");
+    return `
+      <div
+        class="layout-overlay layout-overlay-${escapeAttribute(overlay.type || "text")}"
+        data-editor-id="${escapeAttribute(id)}"
+        data-layout-path="${escapeAttribute(`slides.${slideId}.overlays.${index}`)}"
+        style="${style}"
+      >${body}</div>
+    `;
+  }
+
+  function clampNumber(value, min, max) {
+    return Math.max(min, Math.min(max, value));
   }
 
   function renderMotionId(fragment) {
@@ -1546,7 +1665,20 @@ function decodeInline(value = "") {
 
 function isSlideOptions(value) {
   if (!value || typeof value !== "object" || Array.isArray(value) || value.kind || value.type) return false;
-  return ["layout", "columns", "widths", "transition", "section", "subsection", "notes", "className"].some((key) => key in value);
+  return [
+    "layout",
+    "columns",
+    "widths",
+    "transition",
+    "section",
+    "subsection",
+    "notes",
+    "className",
+    "editorId",
+    "id",
+    "sourceStart",
+    "sourceEnd",
+  ].some((key) => key in value);
 }
 
 function highlightCode(body = "", language = "text") {

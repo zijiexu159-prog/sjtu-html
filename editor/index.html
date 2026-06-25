@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SJTU Slide Visual Editor</title>
+    <link rel="stylesheet" href="/editor/editor.css">
+  </head>
+  <body>
+    <header class="app-toolbar">
+      <div>
+        <strong>SJTU Slide IDE</strong>
+        <span id="file-label" class="muted">Loading...</span>
+      </div>
+      <div class="toolbar-group">
+        <button id="save-button" type="button">Save & Build</button>
+        <button id="build-button" type="button">Build</button>
+        <label>
+          Mode
+          <select id="mode-select">
+            <option value="edit">Edit</option>
+            <option value="read">Read</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar-group selection-controls">
+        <label>
+          Step
+          <input id="appear-input" type="number" min="0" step="1" value="1">
+        </label>
+        <label>
+          Effect
+          <select id="effect-select">
+            <option value="">Keep</option>
+            <option value="fade">fade</option>
+            <option value="fade-up">fade-up</option>
+            <option value="rise">rise</option>
+            <option value="slide-left">slide-left</option>
+            <option value="slide-right">slide-right</option>
+            <option value="zoom">zoom</option>
+            <option value="blur">blur</option>
+            <option value="move-between">move-between</option>
+          </select>
+        </label>
+        <label>
+          Font
+          <input id="font-scale-input" type="number" min="0.3" max="3" step="0.05" value="1">
+        </label>
+        <button id="apply-style-button" type="button">Apply</button>
+      </div>
+      <div class="toolbar-group">
+        <button data-snippet="formula" type="button">Formula</button>
+        <button data-snippet="theorem" type="button">Theorem</button>
+        <button data-snippet="figure" type="button">Figure</button>
+        <button data-snippet="step" type="button">Step</button>
+      </div>
+      <span id="status" class="status">Ready</span>
+    </header>
+
+    <main id="workspace" class="workspace edit-mode">
+      <section class="panel source-panel">
+        <div class="panel-title">.sjtu.md</div>
+        <textarea id="source-editor" spellcheck="false"></textarea>
+      </section>
+      <section class="panel layout-panel">
+        <div class="panel-title">.layout.json</div>
+        <textarea id="layout-editor" spellcheck="false"></textarea>
+      </section>
+      <section class="panel preview-panel">
+        <div class="panel-title">
+          <span>Preview</span>
+          <span id="selection-label" class="muted">No selection</span>
+        </div>
+        <iframe id="preview-frame" title="SJTU slide preview"></iframe>
+      </section>
+    </main>
+
+    <script src="/editor/editor.js"></script>
+  </body>
+</html>
