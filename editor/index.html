@@ -3,45 +3,52 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SJTU Slide Visual Editor</title>
+    <title>SJTU Slide 可视化编辑器</title>
     <link rel="stylesheet" href="/editor/editor.css">
   </head>
   <body>
     <header class="app-toolbar">
       <div>
-        <strong>SJTU Slide IDE</strong>
-        <span id="file-label" class="muted">Loading...</span>
+        <strong data-i18n="appTitle">SJTU Slide 编辑器</strong>
+        <span id="file-label" class="muted">加载中...</span>
       </div>
       <div class="toolbar-group">
         <label>
-          File
+          <span data-i18n="file">文件</span>
           <select id="file-select"></select>
         </label>
-        <button id="open-button" type="button">Open</button>
-        <button id="save-button" type="button">Save & Build</button>
-        <button id="build-button" type="button">Build</button>
-        <button id="export-button" type="button">Export ZIP</button>
+        <button id="open-button" type="button" data-i18n="open">打开</button>
+        <button id="save-button" type="button" data-i18n="saveBuild">保存并构建</button>
+        <button id="build-button" type="button" data-i18n="build">构建</button>
+        <button id="export-button" type="button" data-i18n="exportZip">导出 ZIP</button>
         <label class="import-label">
-          Import Folder
+          <span data-i18n="importFolder">导入文件夹</span>
           <input id="import-input" type="file" webkitdirectory multiple>
         </label>
         <label>
-          Mode
+          <span data-i18n="mode">模式</span>
           <select id="mode-select">
-            <option value="edit">Edit</option>
-            <option value="read">Read</option>
+            <option value="edit" data-i18n="editMode">编辑</option>
+            <option value="read" data-i18n="readMode">阅读</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="language">语言</span>
+          <select id="language-select">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
           </select>
         </label>
       </div>
       <div class="toolbar-group selection-controls">
         <label>
-          Step
+          <span data-i18n="step">步数</span>
           <input id="appear-input" type="number" min="0" step="1" value="1">
         </label>
         <label>
-          Effect
+          <span data-i18n="effect">动画</span>
           <select id="effect-select">
-            <option value="">Keep</option>
+            <option value="" data-i18n="keep">保持</option>
             <option value="fade">fade</option>
             <option value="fade-up">fade-up</option>
             <option value="rise">rise</option>
@@ -53,18 +60,18 @@
           </select>
         </label>
         <label>
-          Font
+          <span data-i18n="font">字号</span>
           <input id="font-scale-input" type="number" min="0.3" max="3" step="0.05" value="1">
         </label>
-        <button id="apply-style-button" type="button">Apply</button>
+        <button id="apply-style-button" type="button" data-i18n="apply">应用</button>
       </div>
       <div class="toolbar-group">
-        <button data-snippet="formula" type="button">Formula</button>
-        <button data-snippet="theorem" type="button">Theorem</button>
-        <button data-snippet="figure" type="button">Figure</button>
-        <button data-snippet="step" type="button">Step</button>
+        <button data-snippet="formula" type="button" data-i18n="insertFormula">公式</button>
+        <button data-snippet="theorem" type="button" data-i18n="insertTheorem">定理</button>
+        <button data-snippet="figure" type="button" data-i18n="insertFigure">图片</button>
+        <button data-snippet="step" type="button" data-i18n="insertStep">分步</button>
       </div>
-      <span id="status" class="status">Ready</span>
+      <span id="status" class="status">就绪</span>
     </header>
 
     <main id="workspace" class="workspace edit-mode">
@@ -78,10 +85,10 @@
       </section>
       <section class="panel preview-panel">
         <div class="panel-title">
-          <span>Preview</span>
-          <span id="selection-label" class="muted">No selection</span>
+          <span data-i18n="preview">预览</span>
+          <span id="selection-label" class="muted">未选择对象</span>
         </div>
-        <iframe id="preview-frame" title="SJTU slide preview"></iframe>
+        <iframe id="preview-frame" title="SJTU slide preview" data-i18n-title="previewTitle"></iframe>
       </section>
     </main>
 

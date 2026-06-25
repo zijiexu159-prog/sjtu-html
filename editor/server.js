@@ -36,20 +36,25 @@ const server = http.createServer(async (request, response) => {
 listen(port);
 
 function listen(nextPort) {
-  server.once("error", (error) => {
+  const onError = (error) => {
+    server.removeListener("listening", onListening);
     if (error.code === "EADDRINUSE") {
-      listen(nextPort + 1);
+      server.close(() => listen(nextPort + 1));
       return;
     }
     throw error;
-  });
-  server.listen(nextPort, host, () => {
+  };
+  const onListening = () => {
+    server.removeListener("error", onError);
     const shownHost = host === "0.0.0.0" ? "127.0.0.1" : host;
     console.log(`SJTU editor: http://${shownHost}:${nextPort}/`);
     console.log(`Workspace: ${workspaceRoot}`);
     console.log(`Source: ${relativeToWorkspace(project.sourcePath)}`);
     console.log(`Layout: ${relativeToWorkspace(project.layoutPath)}`);
-  });
+  };
+  server.once("error", onError);
+  server.once("listening", onListening);
+  server.listen(nextPort, host);
 }
 
 async function handleOpen(request, response) {

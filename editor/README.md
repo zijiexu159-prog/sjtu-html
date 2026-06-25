@@ -18,6 +18,8 @@ node editor/server.js
 
 The server scans the workspace for `.sjtu.md` files. If none are found, it seeds a copy of the bundled example.
 
+The toolbar includes a `Language / 语言` switch. Chinese is the default interface language, and the English UI remains available for shared use.
+
 The editor keeps semantic content and visual adjustments separate:
 
 - `.sjtu.md` stores slide content, sections, formulas, figures, and stable ids.
