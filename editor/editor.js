@@ -6,6 +6,9 @@ const state = {
   selected: null,
   mode: "edit",
   saveTimer: null,
+  language: localStorage.getItem("sjtuEditorLanguage") || "zh",
+  statusKey: "ready",
+  statusVars: {},
 };
 
 const els = {
@@ -23,6 +26,7 @@ const els = {
   exportButton: document.querySelector("#export-button"),
   importInput: document.querySelector("#import-input"),
   modeSelect: document.querySelector("#mode-select"),
+  languageSelect: document.querySelector("#language-select"),
   appearInput: document.querySelector("#appear-input"),
   effectSelect: document.querySelector("#effect-select"),
   fontScaleInput: document.querySelector("#font-scale-input"),
@@ -36,10 +40,96 @@ const snippets = {
   step: "\n### 内容块[fade-up]{#block-new}\n#### [1]\n第一步内容\n#### [2]\n第二步内容\n",
 };
 
+const messages = {
+  zh: {
+    documentTitle: "SJTU Slide 可视化编辑器",
+    appTitle: "SJTU Slide 编辑器",
+    file: "文件",
+    open: "打开",
+    saveBuild: "保存并构建",
+    build: "构建",
+    exportZip: "导出 ZIP",
+    importFolder: "导入文件夹",
+    mode: "模式",
+    editMode: "编辑",
+    readMode: "阅读",
+    language: "语言",
+    step: "步数",
+    effect: "动画",
+    keep: "保持",
+    font: "字号",
+    apply: "应用",
+    insertFormula: "公式",
+    insertTheorem: "定理",
+    insertFigure: "图片",
+    insertStep: "分步",
+    preview: "预览",
+    previewTitle: "SJTU 幻灯片预览",
+    noSelection: "未选择对象",
+    loading: "加载中...",
+    ready: "就绪",
+    opening: "正在打开...",
+    opened: "已打开",
+    saving: "正在保存...",
+    saved: "已保存",
+    building: "正在构建...",
+    built: "已构建",
+    importing: "正在导入...",
+    imported: "已导入",
+    selectObjectFirst: "请先选择一个对象",
+    layoutUpdated: "布局已更新",
+    layoutJsonOk: "Layout JSON 正常",
+    layoutJsonBad: "Layout JSON 有错误",
+    layoutJsonError: "Layout JSON 错误：{message}",
+  },
+  en: {
+    documentTitle: "SJTU Slide Visual Editor",
+    appTitle: "SJTU Slide IDE",
+    file: "File",
+    open: "Open",
+    saveBuild: "Save & Build",
+    build: "Build",
+    exportZip: "Export ZIP",
+    importFolder: "Import Folder",
+    mode: "Mode",
+    editMode: "Edit",
+    readMode: "Read",
+    language: "Language",
+    step: "Step",
+    effect: "Effect",
+    keep: "Keep",
+    font: "Font",
+    apply: "Apply",
+    insertFormula: "Formula",
+    insertTheorem: "Theorem",
+    insertFigure: "Figure",
+    insertStep: "Step",
+    preview: "Preview",
+    previewTitle: "SJTU slide preview",
+    noSelection: "No selection",
+    loading: "Loading...",
+    ready: "Ready",
+    opening: "Opening...",
+    opened: "Opened",
+    saving: "Saving...",
+    saved: "Saved",
+    building: "Building...",
+    built: "Built",
+    importing: "Importing...",
+    imported: "Imported",
+    selectObjectFirst: "Select an object first",
+    layoutUpdated: "Layout updated",
+    layoutJsonOk: "Layout JSON ok",
+    layoutJsonBad: "Layout JSON has errors",
+    layoutJsonError: "Layout JSON error: {message}",
+  },
+};
+
 init();
 
 async function init() {
   bindEvents();
+  applyLanguage();
   await loadState();
 }
 
@@ -50,6 +140,7 @@ function bindEvents() {
   els.exportButton.addEventListener("click", () => exportProject());
   els.importInput.addEventListener("change", () => importFolder());
   els.modeSelect.addEventListener("change", () => setMode(els.modeSelect.value));
+  els.languageSelect.addEventListener("change", () => setLanguage(els.languageSelect.value));
   els.applyStyleButton.addEventListener("click", applyStyleControls);
   els.source.addEventListener("click", focusPreviewFromSourceCursor);
   els.layout.addEventListener("input", validateLayoutSoon);
@@ -61,7 +152,7 @@ function bindEvents() {
 }
 
 async function loadState() {
-  setStatus("Loading...");
+  setStatus("loading");
   const data = await getJson("/api/state");
   state.sourcePath = data.sourcePath;
   state.layoutPath = data.layoutPath;
@@ -72,17 +163,17 @@ async function loadState() {
   els.fileLabel.textContent = `${data.sourcePath} + ${data.layoutPath}`;
   populateFileSelect();
   await refreshPreview();
-  setStatus("Ready");
+  setStatus("ready");
 }
 
 async function openSelectedFile() {
   const path = els.fileSelect.value;
   if (!path) return;
-  setStatus("Opening...");
+  setStatus("opening");
   const data = await postJson("/api/open", { path });
   applyState(data);
   await refreshPreview();
-  setStatus("Opened");
+  setStatus("opened");
 }
 
 function applyState(data) {
@@ -94,7 +185,7 @@ function applyState(data) {
   els.source.value = data.source || "";
   els.layout.value = data.layoutText || "{\n  \"version\": 1,\n  \"slides\": {}\n}\n";
   els.fileLabel.textContent = `${data.sourcePath} + ${data.layoutPath}`;
-  els.selectionLabel.textContent = "No selection";
+  els.selectionLabel.textContent = t("noSelection");
   populateFileSelect();
 }
 
@@ -112,22 +203,22 @@ function populateFileSelect() {
 async function saveAndBuild() {
   const parsed = parseLayoutEditor();
   if (!parsed) return;
-  setStatus("Saving...");
+  setStatus("saving");
   const data = await postJson("/api/save", {
     source: els.source.value,
     layoutText: els.layout.value,
   });
   applyState(data);
   await refreshPreview();
-  setStatus("Saved");
+  setStatus("saved");
 }
 
 async function buildOnly() {
-  setStatus("Building...");
+  setStatus("building");
   const data = await postJson("/api/build", {});
   applyState(data);
   await refreshPreview();
-  setStatus("Built");
+  setStatus("built");
 }
 
 function exportProject() {
@@ -137,7 +228,7 @@ function exportProject() {
 async function importFolder() {
   const files = Array.from(els.importInput.files || []);
   if (!files.length) return;
-  setStatus("Importing...");
+  setStatus("importing");
   const form = new FormData();
   files.forEach((file) => {
     form.append("files", file, file.webkitRelativePath || file.name);
@@ -146,7 +237,7 @@ async function importFolder() {
   applyState(data);
   await refreshPreview();
   els.importInput.value = "";
-  setStatus("Imported");
+  setStatus("imported");
 }
 
 async function refreshPreview() {
@@ -348,7 +439,7 @@ function applyRectToNode(node, rect) {
 
 function applyStyleControls() {
   if (!state.selected) {
-    setStatus("Select an object first");
+    setStatus("selectObjectFirst");
     return;
   }
   const patch = {};
@@ -366,7 +457,7 @@ function applyStyleControls() {
     if (patch.animation?.appear != null) node.dataset.appear = patch.animation.appear;
     if (patch.animation?.effect) node.dataset.effect = patch.animation.effect;
   }
-  setStatus("Layout updated");
+  setStatus("layoutUpdated");
 }
 
 function writeSelectedLayout(patch, options = {}) {
@@ -400,7 +491,7 @@ function parseLayoutEditor(options = {}) {
   try {
     return JSON.parse(els.layout.value || "{}");
   } catch (error) {
-    if (!options.quiet) setStatus(`Layout JSON error: ${error.message}`);
+    if (!options.quiet) setStatus("layoutJsonError", { message: error.message });
     return null;
   }
 }
@@ -409,7 +500,7 @@ function validateLayoutSoon() {
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(() => {
     const json = parseLayoutEditor({ quiet: true });
-    setStatus(json ? "Layout JSON ok" : "Layout JSON has errors");
+    setStatus(json ? "layoutJsonOk" : "layoutJsonBad");
   }, 250);
 }
 
@@ -482,6 +573,33 @@ function setMode(mode) {
   wirePreview();
 }
 
+function setLanguage(language) {
+  state.language = messages[language] ? language : "zh";
+  localStorage.setItem("sjtuEditorLanguage", state.language);
+  applyLanguage();
+}
+
+function applyLanguage() {
+  document.documentElement.lang = state.language === "zh" ? "zh-CN" : "en";
+  document.title = t("documentTitle");
+  els.languageSelect.value = state.language;
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    node.title = t(node.dataset.i18nTitle);
+  });
+  if (!state.selected) els.selectionLabel.textContent = t("noSelection");
+  setStatus(state.statusKey, state.statusVars);
+}
+
+function t(key, vars = {}) {
+  const table = messages[state.language] || messages.zh;
+  const fallback = messages.en[key] || key;
+  const value = table[key] || fallback;
+  return value.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+}
+
 function insertSnippet(name) {
   const snippet = snippets[name];
   if (!snippet) return;
@@ -549,6 +667,8 @@ async function postForm(url, body) {
   return data;
 }
 
-function setStatus(message) {
-  els.status.textContent = message;
+function setStatus(key, vars = {}) {
+  state.statusKey = key;
+  state.statusVars = vars;
+  els.status.textContent = t(key, vars);
 }
