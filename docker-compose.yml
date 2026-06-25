@@ -1,0 +1,11 @@
+services:
+  sjtu-html-editor:
+    build: .
+    ports:
+      - "5174:5174"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 5174
+      SJTU_WORKSPACE: /workspace
+    volumes:
+      - ./workspace:/workspace

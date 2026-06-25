@@ -13,8 +13,18 @@
         <span id="file-label" class="muted">Loading...</span>
       </div>
       <div class="toolbar-group">
+        <label>
+          File
+          <select id="file-select"></select>
+        </label>
+        <button id="open-button" type="button">Open</button>
         <button id="save-button" type="button">Save & Build</button>
         <button id="build-button" type="button">Build</button>
+        <button id="export-button" type="button">Export ZIP</button>
+        <label class="import-label">
+          Import Folder
+          <input id="import-input" type="file" webkitdirectory multiple>
+        </label>
         <label>
           Mode
           <select id="mode-select">

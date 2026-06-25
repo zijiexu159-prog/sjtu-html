@@ -16,8 +16,12 @@ const els = {
   status: document.querySelector("#status"),
   fileLabel: document.querySelector("#file-label"),
   selectionLabel: document.querySelector("#selection-label"),
+  fileSelect: document.querySelector("#file-select"),
+  openButton: document.querySelector("#open-button"),
   saveButton: document.querySelector("#save-button"),
   buildButton: document.querySelector("#build-button"),
+  exportButton: document.querySelector("#export-button"),
+  importInput: document.querySelector("#import-input"),
   modeSelect: document.querySelector("#mode-select"),
   appearInput: document.querySelector("#appear-input"),
   effectSelect: document.querySelector("#effect-select"),
@@ -42,6 +46,9 @@ async function init() {
 function bindEvents() {
   els.saveButton.addEventListener("click", () => saveAndBuild());
   els.buildButton.addEventListener("click", () => buildOnly());
+  els.openButton.addEventListener("click", () => openSelectedFile());
+  els.exportButton.addEventListener("click", () => exportProject());
+  els.importInput.addEventListener("change", () => importFolder());
   els.modeSelect.addEventListener("change", () => setMode(els.modeSelect.value));
   els.applyStyleButton.addEventListener("click", applyStyleControls);
   els.source.addEventListener("click", focusPreviewFromSourceCursor);
@@ -59,11 +66,47 @@ async function loadState() {
   state.sourcePath = data.sourcePath;
   state.layoutPath = data.layoutPath;
   state.previewUrl = data.previewUrl || "/preview";
+  state.files = data.files || [];
   els.source.value = data.source || "";
   els.layout.value = data.layoutText || "{\n  \"version\": 1,\n  \"slides\": {}\n}\n";
   els.fileLabel.textContent = `${data.sourcePath} + ${data.layoutPath}`;
+  populateFileSelect();
   await refreshPreview();
   setStatus("Ready");
+}
+
+async function openSelectedFile() {
+  const path = els.fileSelect.value;
+  if (!path) return;
+  setStatus("Opening...");
+  const data = await postJson("/api/open", { path });
+  applyState(data);
+  await refreshPreview();
+  setStatus("Opened");
+}
+
+function applyState(data) {
+  state.sourcePath = data.sourcePath;
+  state.layoutPath = data.layoutPath;
+  state.previewUrl = data.previewUrl || state.previewUrl;
+  state.files = data.files || [];
+  state.selected = null;
+  els.source.value = data.source || "";
+  els.layout.value = data.layoutText || "{\n  \"version\": 1,\n  \"slides\": {}\n}\n";
+  els.fileLabel.textContent = `${data.sourcePath} + ${data.layoutPath}`;
+  els.selectionLabel.textContent = "No selection";
+  populateFileSelect();
+}
+
+function populateFileSelect() {
+  els.fileSelect.innerHTML = "";
+  for (const file of state.files || []) {
+    const option = document.createElement("option");
+    option.value = file;
+    option.textContent = file;
+    option.selected = file === state.sourcePath;
+    els.fileSelect.appendChild(option);
+  }
 }
 
 async function saveAndBuild() {
@@ -74,7 +117,7 @@ async function saveAndBuild() {
     source: els.source.value,
     layoutText: els.layout.value,
   });
-  state.previewUrl = data.previewUrl || state.previewUrl;
+  applyState(data);
   await refreshPreview();
   setStatus("Saved");
 }
@@ -82,9 +125,28 @@ async function saveAndBuild() {
 async function buildOnly() {
   setStatus("Building...");
   const data = await postJson("/api/build", {});
-  state.previewUrl = data.previewUrl || state.previewUrl;
+  applyState(data);
   await refreshPreview();
   setStatus("Built");
+}
+
+function exportProject() {
+  window.location.href = "/api/export";
+}
+
+async function importFolder() {
+  const files = Array.from(els.importInput.files || []);
+  if (!files.length) return;
+  setStatus("Importing...");
+  const form = new FormData();
+  files.forEach((file) => {
+    form.append("files", file, file.webkitRelativePath || file.name);
+  });
+  const data = await postForm("/api/import", form);
+  applyState(data);
+  await refreshPreview();
+  els.importInput.value = "";
+  setStatus("Imported");
 }
 
 async function refreshPreview() {
@@ -471,6 +533,16 @@ async function postJson(url, body) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || response.statusText);
+  return data;
+}
+
+async function postForm(url, body) {
+  const response = await fetch(url, {
+    method: "POST",
+    body,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || response.statusText);
