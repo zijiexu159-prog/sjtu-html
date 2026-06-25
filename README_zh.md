@@ -35,6 +35,44 @@ node core/build-sjtu-markup.js markdown/manual.sjtu.md markdown/manual.html
 npm run build
 ```
 
+## 可视化编辑器
+
+在 `html-template/` 目录运行：
+
+```powershell
+npm run editor
+```
+
+也可以指定某个源文件：
+
+```powershell
+node editor/server.js markdown/example.sjtu.md
+```
+
+编辑器默认打开 `http://127.0.0.1:5174/`，界面分为三块：
+
+- 左上：`.sjtu.md` 语义源稿；
+- 左下：`.layout.json` 视觉补丁；
+- 右侧：生成后的 HTML slide 实时预览。
+
+点击右侧预览对象会同步定位源码行和 layout 节点。编辑模式下可以在预览中拖动或缩放 fragment，结果会写入 `.layout.json` 的相对坐标；工具栏可以设置出现 step、动画效果和字号比例。这样 `.sjtu.md` 保持语义清晰，频繁的排版微调都留在 layout 补丁中。
+
+建议在 `.sjtu.md` 头部显式写出 layout 文件：
+
+```markdown
+% layout: example.layout.json
+```
+
+需要可视化编辑的页面和对象也建议写稳定 id：
+
+```markdown
+--- 控制方程[2]{#slide-control}
+
+### 主公式[zoom]{#main-formula}
+
+![相图](../assets/figures/example.svg){#fig:phase}
+```
+
 ## 两种写法
 
 直接 HTML/JS 写法适合熟悉 JavaScript 的场景：

@@ -22,6 +22,7 @@ Users are responsible for checking whether their final presentation satisfies th
 - BibTeX citation support through `@cite:key`, automatic bibliography slides, and inline `.bib` embedding during build.
 - Per-slide footnotes through `[^id]` and `[^id]: footnote text`.
 - Page transitions, fragment reveal animations, fixed column slots, object-internal columns, and move-between animations.
+- Local IDE-style visual editor with `.sjtu.md`, `.layout.json`, and live HTML preview panes.
 - Speaker notes toggled with `N`.
 - Print/PDF export support through the browser.
 
@@ -32,6 +33,7 @@ html-template/
   assets/          Static images, SJTU VI assets, and example figures
   core/            Runtime CSS, JavaScript helpers, and the markup builder
   direct-html/     Direct JavaScript examples and manual
+  editor/          Local visual editor for source, layout patches, and live preview
   markdown/        .sjtu.md sources and generated HTML examples
   reference/       API and CSS reference
   skills/          Codex skills for conversion and layout polishing
@@ -59,6 +61,44 @@ If `npm` is available:
 
 ```powershell
 npm run build
+```
+
+## Visual Editor
+
+Run the local editor from `html-template/`:
+
+```powershell
+npm run editor
+```
+
+Or open a specific source:
+
+```powershell
+node editor/server.js markdown/example.sjtu.md
+```
+
+The editor opens at `http://127.0.0.1:5174/` and shows three synchronized panes:
+
+- left top: `.sjtu.md` semantic source;
+- left bottom: `.layout.json` visual patch;
+- right: generated HTML slide preview.
+
+Click a preview object to jump to the corresponding source lines and layout node. In edit mode, drag or resize a fragment in the preview to write its relative `rect` into `.layout.json`; use the toolbar to set `appear`, animation effect, and font scale. The Markdown source stays semantic, while frequent visual adjustments live in the layout patch.
+
+Add a layout file explicitly with:
+
+```markdown
+% layout: example.layout.json
+```
+
+Stable ids are recommended for visual editing:
+
+```markdown
+--- Control Equation[2]{#slide-control}
+
+### Main Formula[zoom]{#main-formula}
+
+![Phase portrait](../assets/figures/example.svg){#fig:phase}
 ```
 
 ## Markdown-Like Authoring

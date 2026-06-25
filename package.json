@@ -8,6 +8,8 @@
     "build:manual": "node core/build-sjtu-markup.js markdown/manual.sjtu.md markdown/manual.html",
     "build:touying": "node core/build-sjtu-markup.js markdown/touying-main-complete.sjtu.md markdown/touying-main-complete.html",
     "build": "npm run build:example && npm run build:manual && npm run build:touying",
-    "check:js": "node --check core/sjtu-ppt-core.js && node --check core/sjtu-markup.js && node --check core/build-sjtu-markup.js && node --check direct-html/basic-slides.js"
+    "editor": "node editor/server.js markdown/example.sjtu.md",
+    "editor:manual": "node editor/server.js markdown/manual.sjtu.md",
+    "check:js": "node --check core/sjtu-ppt-core.js && node --check core/sjtu-markup.js && node --check core/build-sjtu-markup.js && node --check direct-html/basic-slides.js && node --check editor/server.js && node --check editor/editor.js"
   }
 }

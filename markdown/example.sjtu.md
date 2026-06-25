@@ -4,6 +4,7 @@
 % footer: 上海交通大学
 % transition: fade
 % bibliography: references.bib
+% layout: example.layout.json
 
 # 研究背景与模型
 
