@@ -111,6 +111,37 @@ docker compose up --build
 
 Then open `http://127.0.0.1:5174/`.
 
+If the build fails with `failed to fetch anonymous token`, `auth.docker.io`, or a connection timeout while pulling `node:24-alpine`, Docker cannot reach Docker Hub. This happens before the template build starts.
+
+Use one of these options:
+
+1. Run without Docker:
+
+```powershell
+npm run editor
+```
+
+2. Configure a reachable Docker registry mirror in Docker Desktop, then rebuild:
+
+```powershell
+docker compose up --build
+```
+
+3. Override the base image. Copy `.env.example` to `.env` and set `NODE_IMAGE` to a Node image that is reachable from your network:
+
+```text
+NODE_IMAGE=<your-registry-mirror>/library/node:24-alpine
+```
+
+Or set it temporarily in PowerShell:
+
+```powershell
+$env:NODE_IMAGE="<your-registry-mirror>/library/node:24-alpine"
+docker compose up --build
+```
+
+If you already have a suitable Node image loaded locally, set `NODE_IMAGE` to that local image name.
+
 The compose file mounts `./workspace` on your host to `/workspace` inside the container:
 
 ```yaml
