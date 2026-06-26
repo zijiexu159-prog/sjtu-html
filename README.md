@@ -111,7 +111,15 @@ docker compose up --build
 
 Then open `http://127.0.0.1:5174/`.
 
-If the build fails with `failed to fetch anonymous token`, `auth.docker.io`, or a connection timeout while pulling `node:24-alpine`, Docker cannot reach Docker Hub. This happens before the template build starts.
+On Windows you can also use the wrapper script:
+
+```powershell
+.\scripts\docker-up.ps1
+```
+
+The default base image is `public.ecr.aws/docker/library/node:22-alpine`, so the normal Docker workflow does not contact Docker Hub `auth.docker.io`.
+
+If the build still fails while pulling the base image, your current network cannot reach the selected registry. This happens before the template build starts.
 
 Use one of these options:
 
@@ -130,14 +138,14 @@ docker compose up --build
 3. Override the base image. Copy `.env.example` to `.env` and set `NODE_IMAGE` to a Node image that is reachable from your network:
 
 ```text
-NODE_IMAGE=<your-registry-mirror>/library/node:24-alpine
+NODE_IMAGE=<your-registry-mirror>/library/node:22-alpine
 ```
 
 Or set it temporarily in PowerShell:
 
 ```powershell
-$env:NODE_IMAGE="<your-registry-mirror>/library/node:24-alpine"
-docker compose up --build
+$env:NODE_IMAGE="<your-registry-mirror>/library/node:22-alpine"
+.\scripts\docker-up.ps1
 ```
 
 If you already have a suitable Node image loaded locally, set `NODE_IMAGE` to that local image name.
