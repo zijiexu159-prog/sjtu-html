@@ -83,7 +83,15 @@ docker compose up --build
 
 然后打开 `http://127.0.0.1:5174/`。
 
-如果构建时报错类似 `failed to fetch anonymous token`、`auth.docker.io` 超时，说明 Docker 没能从 Docker Hub 拉取基础镜像 `node:24-alpine`。这通常是网络或镜像源问题，不是模板代码问题。可以用下面任一办法：
+Windows 下也可以用包装脚本启动：
+
+```powershell
+.\scripts\docker-up.ps1
+```
+
+当前默认基础镜像是 `public.ecr.aws/docker/library/node:22-alpine`，普通 Docker 流程不会再访问 Docker Hub 的 `auth.docker.io`。
+
+如果构建仍然在拉取基础镜像时失败，说明你当前网络无法访问所选 registry。这一步发生在模板构建之前，不是模板代码问题。可以用下面任一办法：
 
 1. 先不用 Docker，直接本地运行：
 
@@ -100,14 +108,14 @@ docker compose up --build
 3. 指定一个你当前网络可访问的 Node 镜像。可以复制 `.env.example` 为 `.env`，把其中的 `NODE_IMAGE` 改成可访问的镜像地址：
 
 ```text
-NODE_IMAGE=<your-registry-mirror>/library/node:24-alpine
+NODE_IMAGE=<your-registry-mirror>/library/node:22-alpine
 ```
 
 也可以临时在 PowerShell 中指定：
 
 ```powershell
-$env:NODE_IMAGE="<your-registry-mirror>/library/node:24-alpine"
-docker compose up --build
+$env:NODE_IMAGE="<your-registry-mirror>/library/node:22-alpine"
+.\scripts\docker-up.ps1
 ```
 
 如果你已经在其他机器上拉好了镜像，也可以先 `docker save` / `docker load` 到本机，然后把 `NODE_IMAGE` 改成本地已有的镜像名。

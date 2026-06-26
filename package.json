@@ -11,7 +11,7 @@
     "editor": "node editor/server.js markdown/example.sjtu.md",
     "editor:manual": "node editor/server.js markdown/manual.sjtu.md",
     "docker:build": "docker build -t sjtu-html-editor .",
-    "docker:run": "docker compose up --build",
+    "docker:run": "powershell -ExecutionPolicy Bypass -File scripts/docker-up.ps1",
     "check:js": "node --check core/sjtu-ppt-core.js && node --check core/sjtu-markup.js && node --check core/build-sjtu-markup.js && node --check direct-html/basic-slides.js && node --check editor/server.js && node --check editor/editor.js"
   }
 }
