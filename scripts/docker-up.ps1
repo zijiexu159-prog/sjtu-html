@@ -6,11 +6,11 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
-if (-not $Image) {
-  $Image = "public.ecr.aws/docker/library/node:22-alpine"
+if ($Image) {
+  Write-Host "Using Docker base image: $Image"
+  $env:NODE_IMAGE = $Image
+} else {
+  Write-Host "Using Docker base image from .env or docker-compose.yml default"
 }
-
-Write-Host "Using Docker base image: $Image"
-$env:NODE_IMAGE = $Image
 
 docker compose up --build

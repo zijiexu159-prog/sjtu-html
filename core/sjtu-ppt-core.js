@@ -248,6 +248,8 @@ function bootstrapSJTUDeck(slides) {
       if (item.sourceStart) node.dataset.sourceStart = item.sourceStart;
       if (item.sourceEnd) node.dataset.sourceEnd = item.sourceEnd;
       node.dataset.layoutPath = `slides.${getSlideEditorId(item, index)}`;
+      const slideStyle = renderLayoutPatchStyle(getLayoutPatch()?.slides?.[node.dataset.editorId]);
+      if (slideStyle) node.setAttribute("style", slideStyle);
       node.innerHTML = renderSlide(prepareSlide(item), index);
       deck.appendChild(node);
     });
@@ -487,7 +489,7 @@ function renderContentSlide(item, index) {
         ${renderMotionId(merged)}
         ${renderEditorDataAttrs(merged, fragmentId, `slides.${slideId}.fragments.${fragmentId}`)}
         style="${combineInlineStyles(renderMotionStyle(merged), renderLayoutPatchStyle(layoutEntry))}"
-      >${renderFragmentBody(merged)}</div>
+      >${renderFragmentBody(merged, slideId, merged.appear ?? 1)}</div>
     `;
   }
 
@@ -543,11 +545,24 @@ function renderContentSlide(item, index) {
         `width:${rect.w * 100}%`,
         `min-height:${rect.h * 100}%`
       );
+    } else {
+      const offset = normalizeLayoutOffset(layoutEntry.offset);
+      if (offset) {
+        styles.push(
+          "position:relative",
+          `left:${offset.x * 100}%`,
+          `top:${offset.y * 100}%`
+        );
+      }
     }
+    const fontFamily = normalizeCssFontFamily(layoutEntry.fontFamily);
+    if (fontFamily) styles.push(`font-family:${fontFamily}`);
     const fontScale = Number(layoutEntry.fontScale);
     if (Number.isFinite(fontScale) && fontScale > 0) {
       styles.push(`font-size:${fontScale}em`);
     }
+    const fontSize = normalizeCssFontSize(layoutEntry.fontSize);
+    if (fontSize) styles.push(`font-size:${fontSize}`);
     const zIndex = Number(layoutEntry.zIndex);
     if (Number.isFinite(zIndex)) styles.push(`z-index:${zIndex}`);
     return styles.join("; ");
@@ -570,6 +585,33 @@ function renderContentSlide(item, index) {
       w: clampNumber(w, 0.02, 1.5),
       h: clampNumber(h, 0.02, 1.5),
     };
+  }
+
+  function normalizeLayoutOffset(offset) {
+    if (!offset || typeof offset !== "object") return null;
+    const x = Number(offset.x);
+    const y = Number(offset.y);
+    if (![x, y].every(Number.isFinite)) return null;
+    return {
+      x: clampNumber(x, -1.5, 1.5),
+      y: clampNumber(y, -1.5, 1.5),
+    };
+  }
+
+  function normalizeCssFontFamily(value) {
+    const generic = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace"]);
+    return String(value || "")
+      .split(",")
+      .map((part) => part.trim().replace(/^["']|["']$/g, "").trim())
+      .filter((part) => part && !/[;"{}<>\\]/.test(part))
+      .slice(0, 8)
+      .map((part) => generic.has(part.toLowerCase()) ? part : `"${escapeAttribute(part)}"`)
+      .join(", ");
+  }
+
+  function normalizeCssFontSize(value) {
+    const raw = String(value || "").trim();
+    return /^\d*\.?\d+(px|em|rem|pt|%|vw|vh)$/.test(raw) ? raw : "";
   }
 
   function renderLayoutOverlays(slideId) {
@@ -603,12 +645,12 @@ function renderContentSlide(item, index) {
     return id ? `data-motion-id="${escapeAttribute(id)}"` : "";
   }
 
-  function renderFragmentBody(fragment) {
+  function renderFragmentBody(fragment, slideId = "", inheritedAppear = 1) {
     if (fragment.kind === "list") {
       return `<ul class="lead-list">${fragment.items.map((item) => `<li>${renderRichText(item)}</li>`).join("")}</ul>`;
     }
     if (fragment.kind === "columns") {
-      return `<div class="inner-columns">${fragment.items.map((item) => `<div>${renderFragmentBody(normalizeFragment(item))}</div>`).join("")}</div>`;
+      return `<div class="inner-columns">${fragment.items.map((item) => `<div>${renderNestedFragment(normalizeFragment(item), slideId, inheritedAppear)}</div>`).join("")}</div>`;
     }
     if (fragment.kind === "column-flow") {
       const count = Math.max(1, Number(fragment.columns) || fragment.items.length || 1);
@@ -616,7 +658,7 @@ function renderContentSlide(item, index) {
       const groups = Array.from({ length: count }, (_, index) => fragment.items[index] || []);
       return `
         <div class="column-flow ${fragment.nested ? "is-nested" : ""}" style="--column-flow-widths: ${escapeAttribute(widths.map((width) => `${width}fr`).join(" "))}">
-          ${groups.map((group, index) => renderColumnFlowColumn(group, fragment.specs?.[index])).join("")}
+          ${groups.map((group, index) => renderColumnFlowColumn(group, fragment.specs?.[index], slideId, inheritedAppear)).join("")}
         </div>
       `;
     }
@@ -624,7 +666,7 @@ function renderContentSlide(item, index) {
       return `
         <section class="content-group">
           <div class="content-group-body">
-            ${renderContentGroupItems(fragment.items)}
+            ${renderContentGroupItems(fragment.items, slideId, inheritedAppear)}
           </div>
         </section>
       `;
@@ -633,7 +675,7 @@ function renderContentSlide(item, index) {
       return `
         <section class="step-variant">
           <div class="step-variant-body">
-            ${fragment.items.map((item) => renderFragmentBody(normalizeFragment(item))).join("")}
+            ${fragment.items.map((item) => renderNestedFragment(normalizeFragment(item), slideId, inheritedAppear)).join("")}
           </div>
         </section>
       `;
@@ -645,7 +687,7 @@ function renderContentSlide(item, index) {
       const count = Math.max(1, Number(fragment.columns || fragment.items.length || 1));
       return `
         <div class="inner-grid" style="--inner-grid-columns: ${escapeAttribute(count)}">
-          ${fragment.items.map((item) => `<div>${renderFragmentBody(normalizeFragment(item))}</div>`).join("")}
+          ${fragment.items.map((item) => `<div>${renderNestedFragment(normalizeFragment(item), slideId, inheritedAppear)}</div>`).join("")}
         </div>
       `;
     }
@@ -707,11 +749,11 @@ function renderContentSlide(item, index) {
     return `<div class="card">${escapeHtml(fragment.body || "")}</div>`;
   }
 
-  function renderColumnFlowColumn(group, spec = {}) {
+  function renderColumnFlowColumn(group, spec = {}, slideId = "", inheritedAppear = 1) {
     if (!spec?.slots) {
       return `
         <div class="column-flow-column">
-          ${group.map((item) => renderColumnFlowItem(item)).join("")}
+          ${group.map((item) => renderColumnFlowItem(item, slideId, inheritedAppear)).join("")}
         </div>
       `;
     }
@@ -722,24 +764,24 @@ function renderContentSlide(item, index) {
       <div class="column-flow-column has-slots" style="--column-slot-rows: ${escapeAttribute(rows)}">
         ${Array.from({ length: slotCount }, (_, index) => `
           <div class="column-flow-slot">
-            <div class="column-slot-content">${group[index] ? renderColumnFlowItem(group[index]) : ""}</div>
+            <div class="column-slot-content">${group[index] ? renderColumnFlowItem(group[index], slideId, inheritedAppear) : ""}</div>
           </div>
         `).join("")}
       </div>
     `;
   }
 
-  function renderColumnFlowItem(item) {
+  function renderColumnFlowItem(item, slideId = "", inheritedAppear = 1) {
     const normalized = normalizeFragment(item);
-    return normalized.kind === "content-group" ? renderNestedFragment(normalized) : renderFragmentBody(normalized);
+    return renderNestedFragment(normalized, slideId, inheritedAppear);
   }
 
-  function renderContentGroupItems(items = []) {
+  function renderContentGroupItems(items = [], slideId = "", inheritedAppear = 1) {
     let html = "";
     let variants = [];
     const flushVariants = () => {
       if (!variants.length) return;
-      html += `<div class="step-variant-stack">${variants.map((item) => renderNestedFragment(item)).join("")}</div>`;
+      html += `<div class="step-variant-stack">${variants.map((item) => renderNestedFragment(item, slideId, inheritedAppear)).join("")}</div>`;
       variants = [];
     };
     items.forEach((item) => {
@@ -749,7 +791,7 @@ function renderContentSlide(item, index) {
         return;
       }
       flushVariants();
-      html += renderFragmentBody(normalized);
+      html += renderNestedFragment(normalized, slideId, inheritedAppear);
     });
     flushVariants();
     return html;
@@ -759,17 +801,23 @@ function renderContentSlide(item, index) {
     return `<section class="beamer-block ${className}"><h3>${escapeHtml(fragment.title)}</h3><p>${renderRichText(fragment.body)}</p></section>`;
   }
 
-  function renderNestedFragment(fragment) {
+  function renderNestedFragment(fragment, slideId = "", inheritedAppear = 1) {
+    const fragmentId = fragment.editorId || fragment.ref || fragment.label || fragment.motionId || "";
+    const layoutPath = slideId && fragmentId ? `slides.${slideId}.fragments.${fragmentId}` : "";
+    const layoutEntry = slideId && fragmentId ? getLayoutFragmentPatch(slideId, fragmentId) : null;
+    const merged = mergeFragmentLayout(fragment, layoutEntry);
+    const appear = merged.appear ?? inheritedAppear ?? 1;
     return `
       <div
         class="fragment nested-fragment"
-        data-appear="${escapeAttribute(fragment.appear ?? 1)}"
-        data-disappear="${escapeAttribute(fragment.disappear ?? "")}"
-        data-move-at="${escapeAttribute(fragment.moveAt ?? "")}"
-        data-effect="${escapeAttribute(fragment.effect || "fade-up")}"
-        ${renderMotionId(fragment)}
-        style="${renderMotionStyle(fragment)}"
-      >${renderFragmentBody(fragment)}</div>
+        data-appear="${escapeAttribute(appear)}"
+        data-disappear="${escapeAttribute(merged.disappear ?? "")}"
+        data-move-at="${escapeAttribute(merged.moveAt ?? "")}"
+        data-effect="${escapeAttribute(merged.effect || "fade-up")}"
+        ${renderMotionId(merged)}
+        ${fragmentId ? renderEditorDataAttrs(merged, fragmentId, layoutPath) : ""}
+        style="${combineInlineStyles(renderMotionStyle(merged), renderLayoutPatchStyle(layoutEntry))}"
+      >${renderFragmentBody(merged, slideId, appear)}</div>
     `;
   }
 
@@ -1166,6 +1214,11 @@ function renderContentSlide(item, index) {
     else document.exitFullscreen?.();
   }
 
+  function toggleNotes() {
+    deck.classList.toggle("show-notes");
+    return deck.classList.contains("show-notes");
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && deck.querySelector(".figure-zoom-overlay.is-open")) {
       closeFigureZoom();
@@ -1182,7 +1235,7 @@ function renderContentSlide(item, index) {
     if (event.key.toLowerCase() === "f") toggleFullscreen();
     if (event.key.toLowerCase() === "n") {
       event.preventDefault();
-      deck.classList.toggle("show-notes");
+      toggleNotes();
     }
     if (event.key.toLowerCase() === "r") {
       event.preventDefault();
@@ -1200,11 +1253,19 @@ function renderContentSlide(item, index) {
     loadHash();
     renderCurrent();
   });
+  window.addEventListener("message", (event) => {
+    if (event.source !== window.parent || event.data?.type !== "sjtu-deck:navigate") return;
+    if (event.data.action === "next") next();
+    if (event.data.action === "previous") previous();
+    if (event.data.action === "toggleNotes") toggleNotes();
+  });
 
   loadHash();
   setSlideTransition(sjtuTheme.transition);
   renderDeck();
-  return { next, previous, setSlideTransition };
+  const api = { next, previous, toggleNotes, setSlideTransition };
+  window.sjtuDeckApi = api;
+  return api;
 
   function updateSpeakerNotes() {
     const body = notesPanel.querySelector(".speaker-notes-body");

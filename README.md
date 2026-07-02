@@ -83,7 +83,9 @@ The editor opens at `http://127.0.0.1:5174/` and shows three synchronized panes:
 - left bottom: `.layout.json` visual patch;
 - right: generated HTML slide preview.
 
-Click a preview object to jump to the corresponding source lines and layout node. In edit mode, drag or resize a fragment in the preview to write its relative `rect` into `.layout.json`; use the toolbar to set `appear`, animation effect, and font scale. The Markdown source stays semantic, while frequent visual adjustments live in the layout patch.
+Use the Slide Canvas `‹` / `›` buttons, the preview's own controls, or the usual deck keys to navigate the rendered HTML. Click a preview object to jump to the corresponding source lines and layout node. In edit mode, drag or resize a fragment in the preview to write its relative `rect` into `.layout.json`; use the toolbar to set `appear`, animation effect, font scale, font family, and font size. The Markdown source stays semantic, while frequent visual adjustments live in the layout patch.
+
+The layout patch wins over the semantic source. If generated HTML no longer matches the original `--- Title[2][0.45,0.55]` layout, check `.layout.json` for saved `rect`, `offset`, `fontScale`, `fontFamily`, `fontSize`, or `animation` entries. Remove those patch entries to return to the source-defined layout.
 
 Add a layout file explicitly with:
 
@@ -117,7 +119,7 @@ On Windows you can also use the wrapper script:
 .\scripts\docker-up.ps1
 ```
 
-The default base image is `public.ecr.aws/docker/library/node:22-alpine`, so the normal Docker workflow does not contact Docker Hub `auth.docker.io`.
+The default base image is `node:22-alpine`. If Docker Hub is unreachable from your network, override `NODE_IMAGE` with a registry mirror or another locally available Node image.
 
 If the build still fails while pulling the base image, your current network cannot reach the selected registry. This happens before the template build starts.
 
@@ -135,7 +137,7 @@ npm run editor
 docker compose up --build
 ```
 
-3. Override the base image. Copy `.env.example` to `.env` and set `NODE_IMAGE` to a Node image that is reachable from your network:
+3. Override the base image. Copy `.env.example` to `.env` and set `NODE_IMAGE` to a Node image that is reachable from your network. For example, `.env.ecr.example` uses AWS ECR Public, and `.env.dockerhub.example` uses Docker Hub:
 
 ```text
 NODE_IMAGE=<your-registry-mirror>/library/node:22-alpine
@@ -210,6 +212,20 @@ See @fig:phase.
 
 [^note]: This is a slide-level footnote.
 ```
+
+Page headers use bracket groups in this order: `[columns]`, optional `[width ratios]`, and optional `[transition=name]`. Spaces are fine, so `--- Control Equation [2] [0.45, 0.55] [transition=rise]` parses the same way.
+
+For moving content between steps, prefer a stable motion id:
+
+```markdown
+### Moving Result[only=1][move=result][fade]
+Content at step 1.
+
+### Moving Result[step=2][move=result][fade]
+The same logical content at step 2.
+```
+
+The matching `move=result` tells the deck to animate from the previous visible rectangle to the new rectangle. The visual editor's `move-between` effect is lower-level: it only works when `from`/`to` motion points already exist in `.layout.json` or direct JS. Selecting `move-between` alone does not invent the source and target positions.
 
 ## Bibliography And Footnotes
 
