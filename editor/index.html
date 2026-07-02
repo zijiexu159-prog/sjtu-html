@@ -8,87 +8,216 @@
   </head>
   <body>
     <header class="app-toolbar">
-      <div>
-        <strong data-i18n="appTitle">SJTU Slide 编辑器</strong>
-        <span id="file-label" class="muted">加载中...</span>
-      </div>
-      <div class="toolbar-group">
-        <label>
-          <span data-i18n="file">文件</span>
-          <select id="file-select"></select>
-        </label>
-        <button id="open-button" type="button" data-i18n="open">打开</button>
-        <button id="save-button" type="button" data-i18n="saveBuild">保存并构建</button>
-        <button id="build-button" type="button" data-i18n="build">构建</button>
-        <button id="export-button" type="button" data-i18n="exportZip">导出 ZIP</button>
-        <label class="import-label">
-          <span data-i18n="importFolder">导入文件夹</span>
-          <input id="import-input" type="file" webkitdirectory multiple>
-        </label>
-        <label>
-          <span data-i18n="mode">模式</span>
-          <select id="mode-select">
-            <option value="edit" data-i18n="editMode">编辑</option>
-            <option value="read" data-i18n="readMode">阅读</option>
-          </select>
-        </label>
-        <label>
-          <span data-i18n="language">语言</span>
-          <select id="language-select">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-          </select>
-        </label>
-      </div>
-      <div class="toolbar-group selection-controls">
-        <label>
-          <span data-i18n="step">步数</span>
-          <input id="appear-input" type="number" min="0" step="1" value="1">
-        </label>
-        <label>
-          <span data-i18n="effect">动画</span>
-          <select id="effect-select">
-            <option value="" data-i18n="keep">保持</option>
-            <option value="fade">fade</option>
-            <option value="fade-up">fade-up</option>
-            <option value="rise">rise</option>
-            <option value="slide-left">slide-left</option>
-            <option value="slide-right">slide-right</option>
-            <option value="zoom">zoom</option>
-            <option value="blur">blur</option>
-            <option value="move-between">move-between</option>
-          </select>
-        </label>
-        <label>
-          <span data-i18n="font">字号</span>
-          <input id="font-scale-input" type="number" min="0.3" max="3" step="0.05" value="1">
-        </label>
-        <button id="apply-style-button" type="button" data-i18n="apply">应用</button>
-      </div>
-      <div class="toolbar-group">
-        <button data-snippet="formula" type="button" data-i18n="insertFormula">公式</button>
-        <button data-snippet="theorem" type="button" data-i18n="insertTheorem">定理</button>
-        <button data-snippet="figure" type="button" data-i18n="insertFigure">图片</button>
-        <button data-snippet="step" type="button" data-i18n="insertStep">分步</button>
-      </div>
-      <span id="status" class="status">就绪</span>
+      <section class="app-menu" aria-label="SJTU Slide">
+        <button id="app-menu-button" class="menu-button" type="button" aria-haspopup="true" aria-expanded="false" data-i18n-title="openMenu">
+          <span class="brand-mark">SJTU</span>
+          <span class="menu-button-copy">
+            <strong data-i18n="appTitle">SJTU Slide 编辑器</strong>
+            <small data-i18n="appKicker">源码、布局与实时预览</small>
+          </span>
+          <span class="menu-caret" aria-hidden="true">⌄</span>
+        </button>
+
+        <div id="app-menu-popover" class="menu-popover" hidden>
+          <section class="menu-section project-group">
+            <span class="menu-section-title" data-i18n="projectGroup">项目</span>
+            <div class="menu-row">
+              <button id="project-view-button" class="button secondary" type="button" data-i18n="projectList">项目列表</button>
+              <button id="menu-create-project-button" class="button secondary" type="button" data-i18n="createProject">新建项目</button>
+            </div>
+          </section>
+
+          <section class="menu-section build-group">
+            <span class="menu-section-title" data-i18n="buildGroup">构建</span>
+            <div class="menu-row">
+              <button id="save-button" class="button primary" type="button" data-i18n="saveBuild" data-i18n-title="saveBuildTitle">保存并构建</button>
+              <button id="build-button" class="button secondary" type="button" data-i18n="build">仅构建</button>
+              <button id="export-button" class="button secondary" type="button" data-i18n="exportZip">导出 ZIP</button>
+            </div>
+          </section>
+
+          <section class="menu-section view-group">
+            <span class="menu-section-title" data-i18n="view">视图</span>
+            <div class="menu-row split-row">
+              <label class="field mode-field">
+                <span data-i18n="mode">模式</span>
+                <select id="mode-select" class="visually-hidden" aria-label="模式">
+                  <option value="edit" data-i18n="editMode">编辑</option>
+                  <option value="read" data-i18n="readMode">阅读</option>
+                </select>
+                <span class="mode-segment" role="group" aria-label="模式切换">
+                  <button class="mode-button is-active" type="button" data-mode-button="edit" data-i18n="editMode" data-i18n-title="modeShortcutTitle" aria-pressed="true">编辑</button>
+                  <button class="mode-button" type="button" data-mode-button="read" data-i18n="readMode" data-i18n-title="modeShortcutTitle" aria-pressed="false">阅读</button>
+                </span>
+              </label>
+              <label class="field compact-field">
+                <span data-i18n="language">语言</span>
+                <select id="language-select" class="visually-hidden" aria-label="语言">
+                  <option value="zh">中文</option>
+                  <option value="en">English</option>
+                </select>
+                <span class="language-segment" role="group" aria-label="语言切换">
+                  <button class="language-button is-active" type="button" data-language-button="zh">中文</button>
+                  <button class="language-button" type="button" data-language-button="en">EN</button>
+                </span>
+              </label>
+              <label class="field compact-field theme-field">
+                <span data-i18n="theme">主题</span>
+                <select id="theme-select" class="visually-hidden" aria-label="主题">
+                  <option value="light" data-i18n="lightTheme">浅色</option>
+                  <option value="dark" data-i18n="darkTheme">深色</option>
+                </select>
+                <span class="theme-segment" role="group" aria-label="主题切换">
+                  <button class="theme-button is-active" type="button" data-theme-button="light" data-i18n="lightTheme" aria-pressed="true">浅色</button>
+                  <button class="theme-button" type="button" data-theme-button="dark" data-i18n="darkTheme" aria-pressed="false">深色</button>
+                </span>
+              </label>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <nav class="command-strip" aria-label="编辑器命令">
+        <section id="object-controls" class="toolbar-group selection-controls">
+          <span class="group-title" data-i18n="object">对象</span>
+          <label class="field number-field">
+            <span data-i18n="step">出现步数</span>
+            <input id="appear-input" type="number" min="0" step="1" value="1">
+          </label>
+          <label class="field effect-field">
+            <span data-i18n="effect">动画效果</span>
+            <select id="effect-select">
+              <option value="" data-i18n="keep">保持</option>
+              <option value="fade">fade</option>
+              <option value="fade-up">fade-up</option>
+              <option value="rise">rise</option>
+              <option value="slide-left">slide-left</option>
+              <option value="slide-right">slide-right</option>
+              <option value="zoom">zoom</option>
+              <option value="blur">blur</option>
+              <option value="move-between">move-between</option>
+            </select>
+          </label>
+          <label class="field number-field">
+            <span data-i18n="font">字号倍率</span>
+            <input id="font-scale-input" type="number" min="0.3" max="3" step="0.05" value="1">
+          </label>
+          <label class="field font-family-field">
+            <span data-i18n="fontFamily">字体</span>
+            <select id="font-family-select">
+              <option value="" data-i18n="keep">保持</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="LXGW WenKai">LXGW WenKai</option>
+              <option value="LXGW WenKai Mono">LXGW WenKai Mono</option>
+              <option value="Microsoft YaHei">Microsoft YaHei</option>
+              <option value="SimSun">SimSun</option>
+              <option value="Source Han Serif SC">Source Han Serif SC</option>
+              <option value="Libertinus Serif">Libertinus Serif</option>
+              <option value="serif">serif</option>
+              <option value="sans-serif">sans-serif</option>
+              <option value="monospace">monospace</option>
+            </select>
+          </label>
+          <label class="field font-size-field">
+            <span data-i18n="fontSize">字号</span>
+            <input id="font-size-input" type="text" inputmode="decimal" placeholder="32px / 1.2em">
+          </label>
+          <button id="scan-fonts-button" class="button tertiary" type="button" data-i18n="scanFonts" data-i18n-title="scanFontsTitle">扫描字体</button>
+          <button id="apply-style-button" class="button secondary" type="button" data-i18n="apply">应用</button>
+        </section>
+
+        <section class="toolbar-group insert-group">
+          <span class="group-title" data-i18n="insert">插入</span>
+          <button class="button tertiary" data-snippet="formula" type="button" data-i18n="insertFormula">公式</button>
+          <button class="button tertiary" data-snippet="theorem" type="button" data-i18n="insertTheorem">定理</button>
+          <button class="button tertiary" data-snippet="figure" type="button" data-i18n="insertFigure">图片</button>
+          <button class="button tertiary" data-snippet="step" type="button" data-i18n="insertStep">分步</button>
+        </section>
+      </nav>
+
+      <section class="status-block" aria-live="polite">
+        <span id="status" class="status">就绪</span>
+      </section>
     </header>
 
-    <main id="workspace" class="workspace edit-mode">
-      <section class="panel source-panel">
-        <div class="panel-title">.sjtu.md</div>
-        <textarea id="source-editor" spellcheck="false"></textarea>
-      </section>
-      <section class="panel layout-panel">
-        <div class="panel-title">.layout.json</div>
-        <textarea id="layout-editor" spellcheck="false"></textarea>
-      </section>
-      <section class="panel preview-panel">
-        <div class="panel-title">
-          <span data-i18n="preview">预览</span>
-          <span id="selection-label" class="muted">未选择对象</span>
+    <main id="project-view" class="project-view" hidden>
+      <aside class="project-view-sidebar">
+        <button id="project-create-button" class="project-create-button" type="button" data-i18n="createProject">新建项目</button>
+        <button id="project-back-button" class="project-nav-button" type="button" data-i18n="backToEditor">返回编辑器</button>
+      </aside>
+      <section class="project-browser">
+        <div class="project-browser-title">
+          <h1 data-i18n="allProjects">所有项目</h1>
+          <input id="project-search" type="search" data-i18n-placeholder="searchProjects" placeholder="在所有项目中搜索...">
         </div>
-        <iframe id="preview-frame" title="SJTU slide preview" data-i18n-title="previewTitle"></iframe>
+        <div id="project-list" class="project-list" aria-label="项目列表"></div>
+      </section>
+    </main>
+
+    <main id="app-main" class="app-main">
+      <aside id="file-sidebar" class="file-sidebar">
+        <div class="sidebar-title">
+          <span data-i18n="fileBrowser">文件</span>
+          <button id="sidebar-toggle" class="sidebar-toggle" type="button" data-i18n-title="collapseFiles" aria-label="收起文件栏" aria-expanded="true">‹</button>
+        </div>
+        <div class="sidebar-actions">
+          <button id="new-file-button" class="button tertiary sidebar-action-button" type="button" data-i18n="newFile">新建文件</button>
+          <button id="new-folder-button" class="button tertiary sidebar-action-button" type="button" data-i18n="newFolder">新建文件夹</button>
+          <label class="button tertiary import-label">
+            <span data-i18n="uploadFiles">上传文件/文件夹</span>
+            <input id="import-input" type="file" webkitdirectory multiple>
+          </label>
+          <select id="file-select" class="visually-hidden" aria-label="文件"></select>
+          <button id="open-button" class="visually-hidden" type="button" data-i18n="open">打开</button>
+        </div>
+        <div id="file-list" class="file-list" aria-label="已导入文件"></div>
+      </aside>
+
+      <section id="workspace" class="workspace edit-mode">
+        <section class="panel source-panel">
+          <div class="panel-title">
+            <span data-i18n="sourcePanel">.sjtu.md 源稿</span>
+            <small>
+              <span data-i18n="sourceHint">语义内容</span>
+              <span id="source-line-count" class="line-count">0 行</span>
+            </small>
+          </div>
+          <div class="code-editor-shell">
+            <div id="source-line-numbers" class="line-numbers" aria-hidden="true"></div>
+            <div id="source-highlight" class="code-highlight" aria-hidden="true"></div>
+            <textarea id="source-editor" spellcheck="false" wrap="off"></textarea>
+          </div>
+        </section>
+
+        <section class="panel layout-panel">
+          <div class="panel-title">
+            <span data-i18n="layoutPanel">.layout.json 布局</span>
+            <small>
+              <span data-i18n="layoutHint">视觉补丁</span>
+              <span id="layout-line-count" class="line-count">0 行</span>
+            </small>
+          </div>
+          <div class="code-editor-shell">
+            <div id="layout-line-numbers" class="line-numbers" aria-hidden="true"></div>
+            <textarea id="layout-editor" spellcheck="false" wrap="off"></textarea>
+          </div>
+        </section>
+
+        <section class="panel preview-panel">
+          <div class="panel-title preview-title">
+            <span data-i18n="preview">Slide Canvas</span>
+            <span class="preview-nav" aria-label="Slide navigation">
+              <button id="preview-prev-button" class="preview-nav-button" type="button" data-i18n-title="prevSlide" aria-label="Previous slide">‹</button>
+              <button id="preview-next-button" class="preview-nav-button" type="button" data-i18n-title="nextSlide" aria-label="Next slide">›</button>
+            </span>
+            <span id="selection-label" class="selection-label">未选择对象</span>
+          </div>
+          <div class="preview-stage">
+            <div id="preview-scale-box" class="preview-scale-box">
+              <iframe id="preview-frame" title="SJTU slide preview" data-i18n-title="previewTitle"></iframe>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
 

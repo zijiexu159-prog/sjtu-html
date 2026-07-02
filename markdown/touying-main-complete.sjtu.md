@@ -1,3 +1,4 @@
+% layout: touying-main-complete.layout.json
 % title: 外场作用下向列型液晶定常剪切流的定性分析
 % subtitle: 本科毕业设计答辩 · HTML 完整转换示例
 % author: 徐子杰　指导教师：于江

@@ -55,7 +55,9 @@ node editor/server.js markdown/example.sjtu.md
 - 左下：`.layout.json` 视觉补丁；
 - 右侧：生成后的 HTML slide 实时预览。
 
-点击右侧预览对象会同步定位源码行和 layout 节点。编辑模式下可以在预览中拖动或缩放 fragment，结果会写入 `.layout.json` 的相对坐标；工具栏可以设置出现 step、动画效果和字号比例。这样 `.sjtu.md` 保持语义清晰，频繁的排版微调都留在 layout 补丁中。
+可以用 Slide Canvas 标题栏里的 `‹` / `›`、预览页自带控件，或 deck 常用按键翻页；按 `N` 可在预览中开关演讲者备注。点击右侧预览对象会同步定位源码行和 layout 节点，从源码行跳转到预览时会自动跳到对应 slide 和 step。编辑模式下可以在预览中拖动或缩放 fragment，结果会写入 `.layout.json` 的相对坐标；工具栏可以设置出现 step、动画效果、字号比例、字体和字号。字体下拉框自带“黑体 / SimHei”“宋体 / SimSun”“微软雅黑 / Microsoft YaHei”“霞鹜文楷 / LXGW WenKai”等常用中文别名，也可以用“扫描字体”追加浏览器允许访问的本机字体。这样 `.sjtu.md` 保持语义清晰，频繁的排版微调都留在 layout 补丁中。
+
+`.layout.json` 的优先级高于 `.sjtu.md` 里的语义布局。如果生成 HTML 看起来不再符合最初的 `--- 标题[2][0.45,0.55]` 设定，先检查 `.layout.json` 里是否已有 `rect`、`offset`、`fontScale`、`fontFamily`、`fontSize` 或 `animation` 补丁；删除对应补丁后会回到源稿定义的布局。
 
 建议在 `.sjtu.md` 头部显式写出 layout 文件：
 
@@ -89,7 +91,7 @@ Windows 下也可以用包装脚本启动：
 .\scripts\docker-up.ps1
 ```
 
-当前默认基础镜像是 `public.ecr.aws/docker/library/node:22-alpine`，普通 Docker 流程不会再访问 Docker Hub 的 `auth.docker.io`。
+当前默认基础镜像是 `node:22-alpine`。如果你的网络无法访问 Docker Hub，可以把 `NODE_IMAGE` 改成可访问的 registry mirror，或改成本地已经加载好的 Node 镜像。
 
 如果构建仍然在拉取基础镜像时失败，说明你当前网络无法访问所选 registry。这一步发生在模板构建之前，不是模板代码问题。可以用下面任一办法：
 
@@ -105,7 +107,7 @@ npm run editor
 docker compose up --build
 ```
 
-3. 指定一个你当前网络可访问的 Node 镜像。可以复制 `.env.example` 为 `.env`，把其中的 `NODE_IMAGE` 改成可访问的镜像地址：
+3. 指定一个你当前网络可访问的 Node 镜像。可以复制 `.env.example` 为 `.env`，把其中的 `NODE_IMAGE` 改成可访问的镜像地址。例如 `.env.ecr.example` 使用 AWS ECR Public，`.env.dockerhub.example` 使用 Docker Hub：
 
 ```text
 NODE_IMAGE=<your-registry-mirror>/library/node:22-alpine
@@ -234,6 +236,20 @@ $$
 ```
 
 支持的常用效果包括 `fade`、`fade-up`、`slide-left`、`slide-right`、`zoom`、`blur`、`move-between`。更完整的写法见 `reference/api-css-reference.md` 和 `markdown/manual.html`。
+
+页面标题后的括号组按这个顺序解析：`[列数]`、可选的 `[宽度比例]`、可选的 `[transition=页面切换]`。中间有空格也可以，例如 `--- 控制方程 [2] [0.45, 0.55] [transition=rise]` 和紧贴写法等价。
+
+如果想做“同一对象从一个位置移动到另一个位置”的动画，Markdown 里优先使用稳定 motion id：
+
+```markdown
+### 移动判据[only=1][move=judge][fade]
+第 1 步的位置。
+
+### 移动判据[step=2][move=judge][fade]
+第 2 步的位置。
+```
+
+两个内容块的 `move=judge` 相同，播放到下一步时会从上一次可见位置飞到新位置。可视化编辑器工具栏里的 `move-between` 是更底层的效果：只有 `.layout.json` 或 direct JS 已经写了 `from` / `to` 运动点时才会产生位移；单独选择 `move-between` 不会自动知道从哪里移动到哪里。
 
 ## 公式、图片和引用
 

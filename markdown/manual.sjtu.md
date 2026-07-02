@@ -1,3 +1,4 @@
+% layout: manual.layout.json
 % title: SJTU Markdown 写稿说明
 % subtitle: 从 .sjtu.md 转换到 HTML
 % author: HTML 模板说明

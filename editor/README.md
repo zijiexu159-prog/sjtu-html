@@ -23,10 +23,14 @@ The toolbar includes a `Language / 语言` switch. Chinese is the default interf
 The editor keeps semantic content and visual adjustments separate:
 
 - `.sjtu.md` stores slide content, sections, formulas, figures, and stable ids.
-- `.layout.json` stores visual patches such as `rect`, `fontScale`, `zIndex`, and fragment animation.
+- `.layout.json` stores visual patches such as `rect`, `fontScale`, `fontFamily`, `fontSize`, `zIndex`, and fragment animation.
 - The preview iframe renders the generated HTML and exposes selectable objects through `data-editor-id`.
 
-In edit mode, click a fragment in the preview, drag it to move, drag the lower-right handle to resize, and use the toolbar to adjust step, effect, and font scale. These operations update `.layout.json`; they do not rewrite the semantic source.
+Use the Slide Canvas `‹` / `›` buttons or the preview's own controls to move through slides. Press `N` to toggle speaker notes in the preview. In edit mode, click a fragment in the preview, drag it to move, drag the lower-right handle to resize, and use the toolbar to adjust step, effect, font scale, font family, and font size. Common Chinese font aliases are listed first; use `Scan Fonts` to append locally installed font families when supported. These operations update `.layout.json`; they do not rewrite the semantic source.
+
+`.layout.json` overrides the semantic layout from `.sjtu.md`. If the generated HTML no longer matches the original column setup, remove the saved patch for that fragment or slide.
+
+For move-between animations in Markdown, use matching motion ids such as `[move=judge]` on the step variants that should move between positions. The toolbar's `move-between` effect only works when `from` / `to` motion points already exist in `.layout.json` or direct JS; selecting it alone does not create those points.
 
 In read mode, preview clicks only locate the corresponding `.sjtu.md` lines and `.layout.json` node.
 

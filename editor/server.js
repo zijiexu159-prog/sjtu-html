@@ -25,6 +25,13 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/api/save") return handleSave(request, response);
     if (request.method === "POST" && url.pathname === "/api/build") return handleBuild(response);
     if (request.method === "POST" && url.pathname === "/api/import") return handleImport(request, response);
+    if (request.method === "POST" && url.pathname === "/api/delete") return handleDelete(request, response);
+    if (request.method === "POST" && url.pathname === "/api/folder") return handleCreateFolder(request, response);
+    if (request.method === "POST" && url.pathname === "/api/create") return handleCreateFile(request, response);
+    if (request.method === "POST" && url.pathname === "/api/move") return handleMoveFile(request, response);
+    if (request.method === "POST" && url.pathname === "/api/project/open") return handleOpenProject(request, response);
+    if (request.method === "POST" && url.pathname === "/api/project/create") return handleCreateProject(request, response);
+    if (request.method === "POST" && url.pathname === "/api/project/delete") return handleDeleteProject(request, response);
     if (request.method === "GET" && url.pathname === "/preview") return servePreviewHtml(response, project.outputPath);
     if (request.method === "GET") return serveStatic(response, url.pathname);
     send(response, 405, "Method not allowed");
@@ -111,6 +118,116 @@ async function handleImport(request, response) {
   sendJson(response, readState());
 }
 
+async function handleDelete(request, response) {
+  const body = await readJsonBody(request);
+  const sourcePath = resolveWorkspacePath(String(body.path || ""));
+  if (!/\.sjtu\.md$/i.test(sourcePath)) throw new Error("Only .sjtu.md files can be deleted");
+  if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) throw new Error("Source file not found");
+
+  const deletableFiles = getDeletableProjectFiles(sourcePath);
+  const touchesCurrentProject = deletableFiles.some((filePath) => (
+    samePath(filePath, project.sourcePath) ||
+    samePath(filePath, project.layoutPath) ||
+    samePath(filePath, project.outputPath)
+  ));
+
+  for (const filePath of deletableFiles) {
+    fs.unlinkSync(filePath);
+  }
+
+  if (touchesCurrentProject) {
+    const nextFile = listMarkupFiles().find((file) => !samePath(resolveWorkspacePath(file), sourcePath));
+    project = createProject(nextFile ? resolveWorkspacePath(nextFile) : seedWorkspaceExample());
+    ensureProjectReady(project);
+  }
+
+  sendJson(response, readState());
+}
+
+async function handleCreateFolder(request, response) {
+  const body = await readJsonBody(request);
+  const folderPath = safeWorkspaceRelativePath(String(body.path || body.name || ""));
+  if (!folderPath) throw new Error("Folder name is required");
+  const targetDir = resolveWorkspacePath(folderPath);
+  fs.mkdirSync(targetDir, { recursive: true });
+  sendJson(response, readState());
+}
+
+async function handleCreateFile(request, response) {
+  const body = await readJsonBody(request);
+  const relative = normalizeMarkupPath(String(body.path || body.name || ""));
+  if (!relative) throw new Error("File name is required");
+  const sourcePath = resolveWorkspacePath(relative);
+  if (fs.existsSync(sourcePath)) throw new Error("File already exists");
+  fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
+  const title = path.basename(sourcePath).replace(/\.sjtu\.md$/i, "") || "Untitled";
+  fs.writeFileSync(sourcePath, createDefaultSource(title), "utf8");
+  project = createProject(sourcePath);
+  ensureProjectReady(project);
+  sendJson(response, readState());
+}
+
+async function handleMoveFile(request, response) {
+  const body = await readJsonBody(request);
+  const sourcePath = resolveWorkspacePath(String(body.path || ""));
+  if (!/\.sjtu\.md$/i.test(sourcePath)) throw new Error("Only .sjtu.md files can be moved");
+  if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) throw new Error("Source file not found");
+
+  const targetDirPath = safeWorkspaceRelativePath(String(body.targetDir || ""));
+  const targetDir = targetDirPath ? resolveWorkspacePath(targetDirPath) : workspaceRoot;
+  if (!fs.existsSync(targetDir) || !fs.statSync(targetDir).isDirectory()) throw new Error("Target folder not found");
+  if (samePath(path.dirname(sourcePath), targetDir)) return sendJson(response, readState());
+
+  const movedProject = moveProjectFiles(sourcePath, targetDir);
+  if (samePath(sourcePath, project.sourcePath)) {
+    project = movedProject;
+  }
+  ensureProjectReady(movedProject);
+  sendJson(response, readState());
+}
+
+async function handleOpenProject(request, response) {
+  const body = await readJsonBody(request);
+  const projectRoot = safeWorkspaceRelativePath(String(body.root || ""));
+  const rootPath = projectRoot ? resolveWorkspacePath(projectRoot) : workspaceRoot;
+  if (!fs.existsSync(rootPath) || !fs.statSync(rootPath).isDirectory()) throw new Error("Project not found");
+  const files = listProjectMarkupFiles(rootPath);
+  if (!files.length) throw new Error("Project does not contain .sjtu.md files");
+  project = createProject(path.resolve(rootPath, files[0]));
+  ensureProjectReady(project);
+  sendJson(response, readState());
+}
+
+async function handleCreateProject(request, response) {
+  const body = await readJsonBody(request);
+  const name = sanitizeProjectName(String(body.name || ""));
+  if (!name) throw new Error("Project name is required");
+  const projectDir = path.join(workspaceRoot, "projects", name);
+  if (fs.existsSync(projectDir)) throw new Error("Project already exists");
+  fs.mkdirSync(projectDir, { recursive: true });
+  const sourcePath = path.join(projectDir, `${name}.sjtu.md`);
+  fs.writeFileSync(sourcePath, createDefaultSource(name), "utf8");
+  project = createProject(sourcePath);
+  ensureProjectReady(project);
+  sendJson(response, readState());
+}
+
+async function handleDeleteProject(request, response) {
+  const body = await readJsonBody(request);
+  const relativeRoot = safeWorkspaceRelativePath(String(body.root || ""));
+  if (!relativeRoot) throw new Error("Default project cannot be deleted");
+  const projectDir = resolveWorkspacePath(relativeRoot);
+  if (samePath(projectDir, workspaceRoot)) throw new Error("Default project cannot be deleted");
+  if (!collectProjectRoots().some((rootPath) => samePath(rootPath, projectDir))) throw new Error("Project not found");
+  const deletingCurrent = isInsideDirectory(project.sourcePath, projectDir);
+  fs.rmSync(projectDir, { recursive: true, force: true });
+  if (deletingCurrent) {
+    project = createProject(resolveInitialSource());
+    ensureProjectReady(project);
+  }
+  sendJson(response, readState());
+}
+
 function handleExport(response) {
   const dir = path.dirname(project.sourcePath);
   const zip = createZipFromDirectory(dir);
@@ -130,7 +247,10 @@ function readState() {
     outputPath: relativeToWorkspace(project.outputPath),
     previewUrl: filesUrl(project.outputPath),
     workspaceRoot,
+    projectRoot: relativeToWorkspace(findProjectRootFor(project.sourcePath)),
+    projects: listProjects(),
     files: listMarkupFiles(),
+    folders: listProjectFolders(),
     source: fs.readFileSync(project.sourcePath, "utf8"),
     layoutText: fs.readFileSync(project.layoutPath, "utf8"),
   };
@@ -191,6 +311,55 @@ function getLayoutPath(markupPath) {
   return markupPath.replace(/\.sjtu\.md$/i, ".layout.json");
 }
 
+function getDeletableProjectFiles(sourcePath) {
+  const candidates = [
+    sourcePath,
+    getLayoutPath(sourcePath),
+    sourcePath.replace(/\.sjtu\.md$/i, ".html"),
+  ];
+  const unique = new Map();
+  for (const candidate of candidates) {
+    const resolved = path.resolve(candidate);
+    if (!isInsideWorkspace(resolved)) continue;
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) unique.set(resolved, resolved);
+  }
+  return Array.from(unique.values());
+}
+
+function moveProjectFiles(sourcePath, targetDir) {
+  const oldSource = path.resolve(sourcePath);
+  const oldLayout = getLayoutPath(oldSource);
+  const oldOutput = oldSource.replace(/\.sjtu\.md$/i, ".html");
+  const newSource = path.join(targetDir, path.basename(oldSource));
+  const newLayout = path.join(targetDir, path.basename(oldLayout));
+  const newOutput = path.join(targetDir, path.basename(oldOutput));
+
+  ensureMoveTargetAvailable(newSource, oldSource);
+  ensureMoveTargetAvailable(newLayout, oldLayout);
+  ensureMoveTargetAvailable(newOutput, oldOutput);
+
+  const sourceContent = fs.readFileSync(oldSource, "utf8");
+  if (fs.existsSync(oldLayout) && !samePath(oldLayout, newLayout)) fs.renameSync(oldLayout, newLayout);
+  if (fs.existsSync(oldOutput) && !samePath(oldOutput, newOutput)) fs.renameSync(oldOutput, newOutput);
+  fs.renameSync(oldSource, newSource);
+  fs.writeFileSync(newSource, withLayoutDirective(sourceContent, newSource, newLayout), "utf8");
+  return createProject(newSource);
+}
+
+function ensureMoveTargetAvailable(targetPath, sourcePath) {
+  if (samePath(targetPath, sourcePath)) return;
+  if (fs.existsSync(targetPath)) throw new Error(`Target already exists: ${relativeToWorkspace(targetPath)}`);
+}
+
+function withLayoutDirective(source, sourcePath, layoutPath) {
+  const normalized = source.replace(/\r\n?/g, "\n");
+  const relative = path.relative(path.dirname(sourcePath), layoutPath).replace(/\\/g, "/");
+  if (/^%\s*layout\s*:/m.test(normalized)) {
+    return normalized.replace(/^%\s*layout\s*:.+$/m, `% layout: ${relative}`);
+  }
+  return `% layout: ${relative}\n${normalized}`;
+}
+
 function readExplicitLayoutPath(markupPath) {
   if (!fs.existsSync(markupPath)) throw new Error(`Source file not found: ${markupPath}`);
   const source = fs.readFileSync(markupPath, "utf8");
@@ -210,22 +379,106 @@ function ensureLayoutFile(nextProject) {
   }
 }
 
-function listMarkupFiles() {
+function listMarkupFiles(baseDir = workspaceRoot) {
   const files = [];
+  walkProjectEntries(baseDir, (entry, fullPath) => {
+    if (entry.isFile() && /\.sjtu\.md$/i.test(entry.name)) {
+      files.push(path.relative(baseDir, fullPath).replace(/\\/g, "/"));
+    }
+  });
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
+function listProjectFolders(baseDir = workspaceRoot) {
+  const folders = [];
+  walkProjectEntries(baseDir, (entry, fullPath) => {
+    if (entry.isDirectory()) folders.push(path.relative(baseDir, fullPath).replace(/\\/g, "/"));
+  });
+  return folders.sort((a, b) => a.localeCompare(b));
+}
+
+function walkProjectEntries(baseDir, visit) {
   const walk = (dir, depth = 0) => {
     if (depth > 6 || !fs.existsSync(dir)) return;
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
       const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath, depth + 1);
-      } else if (/\.sjtu\.md$/i.test(entry.name)) {
-        files.push(relativeToWorkspace(fullPath));
-      }
+      visit(entry, fullPath);
+      if (entry.isDirectory()) walk(fullPath, depth + 1);
     }
   };
-  walk(workspaceRoot);
-  return files.sort((a, b) => a.localeCompare(b));
+  walk(baseDir);
+}
+
+function listProjects() {
+  return collectProjectRoots().map((rootPath) => {
+    const files = listProjectMarkupFiles(rootPath);
+    const updatedAt = files.reduce((latest, file) => {
+      const mtime = fs.statSync(path.join(rootPath, file)).mtimeMs;
+      return Math.max(latest, mtime);
+    }, 0);
+    return {
+      root: samePath(rootPath, workspaceRoot) ? "" : relativeToWorkspace(rootPath),
+      name: projectDisplayName(rootPath, files),
+      files: files.length,
+      updatedAt,
+    };
+  }).sort((a, b) => b.updatedAt - a.updatedAt || a.name.localeCompare(b.name));
+}
+
+function collectProjectRoots() {
+  const roots = [];
+  const addRoot = (dir) => {
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return;
+    if (listMarkupFiles(dir).length && !roots.some((existing) => samePath(existing, dir))) roots.push(dir);
+  };
+
+  const rootHasMarkup = fs.readdirSync(workspaceRoot, { withFileTypes: true })
+    .some((entry) => entry.isFile() && /\.sjtu\.md$/i.test(entry.name));
+  if (rootHasMarkup) addRoot(workspaceRoot);
+
+  for (const entry of fs.readdirSync(workspaceRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    const dir = path.join(workspaceRoot, entry.name);
+    if (entry.name === "imports" || entry.name === "projects") {
+      for (const child of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (child.isDirectory() && !child.name.startsWith(".")) addRoot(path.join(dir, child.name));
+      }
+    } else {
+      addRoot(dir);
+    }
+  }
+  return roots;
+}
+
+function listProjectMarkupFiles(rootPath) {
+  if (!samePath(rootPath, workspaceRoot)) return listMarkupFiles(rootPath);
+  return fs.readdirSync(workspaceRoot, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && /\.sjtu\.md$/i.test(entry.name))
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function findProjectRootFor(filePath) {
+  const resolved = path.resolve(filePath);
+  return collectProjectRoots()
+    .filter((rootPath) => isInsideDirectory(resolved, rootPath))
+    .sort((a, b) => b.length - a.length)[0] || workspaceRoot;
+}
+
+function projectDisplayName(rootPath, files) {
+  if (samePath(rootPath, workspaceRoot)) return "默认项目";
+  const title = files.map((file) => readSourceTitle(path.join(rootPath, file))).find(Boolean);
+  return title || path.basename(rootPath);
+}
+
+function readSourceTitle(sourcePath) {
+  try {
+    const source = fs.readFileSync(sourcePath, "utf8");
+    return source.match(/^%\s*title\s*:\s*(.+)$/m)?.[1]?.trim() || "";
+  } catch {
+    return "";
+  }
 }
 
 function serveStatic(response, pathname) {
@@ -484,8 +737,18 @@ function ensureInsideWorkspace(filePath) {
   ensureInsideDirectory(filePath, workspaceRoot);
 }
 
+function isInsideWorkspace(filePath) {
+  return isInsideDirectory(filePath, workspaceRoot);
+}
+
 function ensureInsideRoot(filePath) {
   ensureInsideDirectory(filePath, root);
+}
+
+function isInsideDirectory(filePath, directory) {
+  const resolved = path.resolve(filePath);
+  const base = path.resolve(directory);
+  return resolved === base || resolved.startsWith(`${base}${path.sep}`);
 }
 
 function ensureInsideDirectory(filePath, directory) {
@@ -494,6 +757,28 @@ function ensureInsideDirectory(filePath, directory) {
   if (resolved !== base && !resolved.startsWith(`${base}${path.sep}`)) {
     throw new Error(`Path is outside allowed directory: ${filePath}`);
   }
+}
+
+function samePath(left, right) {
+  return path.resolve(left) === path.resolve(right);
+}
+
+function normalizeMarkupPath(value = "") {
+  const cleaned = safeWorkspaceRelativePath(value);
+  if (!cleaned) return "";
+  return /\.sjtu\.md$/i.test(cleaned) ? cleaned : `${cleaned}.sjtu.md`;
+}
+
+function sanitizeProjectName(value = "") {
+  return sanitizeRelativePath(value).split("/").pop()?.replace(/\.sjtu\.md$/i, "").trim() || "";
+}
+
+function safeWorkspaceRelativePath(value = "") {
+  return sanitizeRelativePath(value).replace(/^\.+(?=\/|$)/, "");
+}
+
+function createDefaultSource(title) {
+  return `% title: ${title}\n% footer: 上海交通大学\n\n# ${title}\n\n--- 新建页面\n\n- 开始写你的内容。\n`;
 }
 
 function sanitizeRelativePath(value = "") {
