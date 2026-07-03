@@ -655,13 +655,12 @@ function syncCodeEditorMetrics(textarea) {
 function syncCodeLineHeights(textarea, gutter) {
   const stripes = getCodeStripes(textarea);
   if (!stripes || !gutter) return;
-  window.requestAnimationFrame(() => {
-    const stripeRows = Array.from(stripes.children);
-    Array.from(gutter.children).forEach((row, index) => {
-      const height = stripeRows[index]?.offsetHeight || Number.parseFloat(getComputedStyle(textarea).lineHeight) || 21.7;
-      row.style.height = `${height}px`;
-      row.style.lineHeight = `${height}px`;
-    });
+  const lineHeight = Number.parseFloat(getComputedStyle(textarea).lineHeight) || 21.7;
+  const stripeRows = Array.from(stripes.children);
+  Array.from(gutter.children).forEach((row, index) => {
+    const height = stripeRows[index]?.offsetHeight || lineHeight;
+    row.style.height = `${height}px`;
+    row.style.lineHeight = "";
   });
 }
 

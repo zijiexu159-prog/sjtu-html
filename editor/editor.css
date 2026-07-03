@@ -1158,6 +1158,7 @@ body.project-mode .menu-popover .view-group {
   min-width: 0;
   min-height: 0;
   height: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   padding: var(--code-padding-y) 0.62rem var(--code-padding-y) 0.35rem;
   border-right: 1px solid var(--line);
@@ -1177,6 +1178,7 @@ body.project-mode .menu-popover .view-group {
   justify-content: flex-end;
   height: var(--code-line-height);
   line-height: var(--code-line-height);
+  box-sizing: border-box;
 }
 
 .code-stripes,
