@@ -1264,42 +1264,34 @@ textarea {
 
 .code-highlight .syntax-heading-1 {
   color: var(--syntax-heading-1);
-  font-weight: 800;
 }
 
 .code-highlight .syntax-heading-2 {
   color: var(--syntax-heading-2);
-  font-weight: 800;
 }
 
 .code-highlight .syntax-heading-3 {
   color: var(--syntax-heading-3);
-  font-weight: 800;
 }
 
 .code-highlight .syntax-heading-4 {
   color: var(--syntax-heading-4);
-  font-weight: 800;
 }
 
 .code-highlight .syntax-section {
   color: var(--syntax-section);
-  font-weight: 800;
 }
 
 .code-highlight .syntax-directive {
   color: var(--syntax-directive);
-  font-weight: 700;
 }
 
 .code-highlight .syntax-formula {
   color: var(--syntax-formula);
-  font-weight: 700;
 }
 
 .code-highlight .syntax-block {
   color: var(--syntax-block);
-  font-weight: 700;
 }
 
 .code-highlight .syntax-comment {
@@ -1308,22 +1300,18 @@ textarea {
 
 .code-highlight .syntax-command {
   color: var(--syntax-command);
-  font-weight: 700;
 }
 
 .code-highlight .syntax-option {
   color: var(--syntax-option);
-  font-weight: 700;
 }
 
 .code-highlight .syntax-animation {
   color: var(--syntax-animation);
-  font-weight: 800;
 }
 
 .code-highlight .syntax-id {
   color: var(--syntax-id);
-  font-weight: 700;
 }
 
 .source-panel textarea {
