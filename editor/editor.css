@@ -1145,8 +1145,7 @@ body.project-mode .menu-popover .view-group {
   overflow: hidden;
   background:
     linear-gradient(90deg, var(--code-gutter-accent) 0 3.25rem, transparent 3.25rem),
-    repeating-linear-gradient(180deg, var(--surface-code) 0 var(--code-line-height), var(--surface-code-line) var(--code-line-height) var(--code-row-pair-height));
-  background-position: 0 0, 0 calc(var(--code-padding-y) + var(--code-scroll-y, 0px));
+    var(--surface-code);
 }
 
 .code-editor-shell:focus-within {
@@ -1173,53 +1172,78 @@ body.project-mode .menu-popover .view-group {
 }
 
 .line-numbers span {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   height: var(--code-line-height);
+  line-height: var(--code-line-height);
 }
 
+.code-stripes,
+.code-highlight,
 textarea {
   grid-column: 2;
   grid-row: 1;
-  position: relative;
-  z-index: 1;
   min-height: 0;
   height: 100%;
   width: 100%;
+  box-sizing: border-box;
+  padding: var(--code-padding-y) calc(1rem + var(--code-scrollbar-width, 0px)) var(--code-padding-y) 1rem;
+  font-family: Consolas, "Cascadia Mono", "LXGW WenKai Mono", "Microsoft YaHei", monospace;
+  font-size: var(--code-font-size);
+  line-height: var(--code-line-height);
+  tab-size: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.code-stripes {
+  z-index: 0;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+}
+
+.code-stripes span {
+  display: block;
+  min-height: var(--code-line-height);
+  color: transparent;
+}
+
+.code-stripes span:nth-child(odd) {
+  background: var(--surface-code);
+}
+
+.code-stripes span:nth-child(even) {
+  background: var(--surface-code-line);
+}
+
+textarea {
+  position: relative;
+  z-index: 2;
   display: block;
   resize: none;
   border: 0;
   outline: none;
-  padding: var(--code-padding-y) 1rem;
   color: var(--ink);
   background: transparent;
-  font-family: Consolas, "Cascadia Mono", "LXGW WenKai Mono", "Microsoft YaHei", monospace;
-  font-size: var(--code-font-size);
-  line-height: var(--code-line-height);
-  tab-size: 2;
-  white-space: pre;
-  overflow-wrap: normal;
 }
 
 .code-highlight {
-  grid-column: 2;
-  grid-row: 1;
-  min-width: 0;
-  min-height: 0;
+  z-index: 1;
   overflow: hidden;
-  padding: var(--code-padding-y) 1rem;
   color: var(--syntax-plain);
   background: transparent;
-  font-family: Consolas, "Cascadia Mono", "LXGW WenKai Mono", "Microsoft YaHei", monospace;
-  font-size: var(--code-font-size);
-  line-height: var(--code-line-height);
-  tab-size: 2;
-  white-space: pre;
-  overflow-wrap: normal;
   pointer-events: none;
 }
 
 .code-highlight span {
+  min-height: var(--code-line-height);
   color: var(--syntax-plain);
+}
+
+.code-highlight > span {
+  display: block;
 }
 
 .code-highlight .syntax-heading-1 {
