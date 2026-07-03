@@ -395,9 +395,16 @@ function bindEvents() {
   els.previewPrevButton?.addEventListener("click", () => navigatePreview("previous"));
   els.previewNextButton?.addEventListener("click", () => navigatePreview("next"));
   els.scanFontsButton?.addEventListener("click", () => runSafely(scanLocalFonts));
-  window.addEventListener("resize", updatePreviewScale);
+  window.addEventListener("resize", () => {
+    updatePreviewScale();
+    syncAllEditorChrome();
+  });
   if (window.ResizeObserver && els.previewStage) {
     new ResizeObserver(updatePreviewScale).observe(els.previewStage);
+  }
+  if (window.ResizeObserver) {
+    const editorObserver = new ResizeObserver(syncAllEditorChrome);
+    document.querySelectorAll(".code-editor-shell").forEach((node) => editorObserver.observe(node));
   }
   document.addEventListener("click", handleDocumentClick);
   document.addEventListener("keydown", handleEditorShortcuts);
@@ -608,9 +615,7 @@ function bindCodeEditorChrome(textarea, gutter, countEl, highlightEl = null) {
   if (!textarea || !gutter) return;
   textarea.addEventListener("input", () => syncCodeEditorChrome(textarea, gutter, countEl, highlightEl));
   textarea.addEventListener("scroll", () => {
-    gutter.scrollTop = textarea.scrollTop;
-    syncCodeHighlightScroll(textarea, highlightEl);
-    syncCodeEditorBackground(textarea);
+    syncCodeEditorScroll(textarea, gutter, highlightEl);
   });
   syncCodeEditorChrome(textarea, gutter, countEl, highlightEl);
 }
@@ -622,24 +627,62 @@ function syncAllEditorChrome() {
 
 function syncCodeEditorChrome(textarea, gutter, countEl, highlightEl = null) {
   if (!textarea || !gutter) return;
-  const lineCount = Math.max(1, textarea.value.split("\n").length);
+  const lines = textarea.value.split("\n");
+  const lineCount = Math.max(1, lines.length);
   let html = "";
   for (let line = 1; line <= lineCount; line += 1) html += `<span>${line}</span>`;
   gutter.innerHTML = html;
-  gutter.scrollTop = textarea.scrollTop;
-  syncCodeEditorBackground(textarea);
+  syncCodeEditorMetrics(textarea);
+  syncCodeStripes(textarea, lines);
   syncSourceHighlight(textarea, highlightEl);
+  syncCodeLineHeights(textarea, gutter);
+  syncCodeEditorScroll(textarea, gutter, highlightEl);
   if (countEl) countEl.textContent = t("lineCount", { count: lineCount });
 }
 
-function syncCodeEditorBackground(textarea) {
-  textarea.closest(".code-editor-shell")?.style.setProperty("--code-scroll-y", `${-textarea.scrollTop}px`);
+function syncCodeStripes(textarea, lines = textarea.value.split("\n")) {
+  const stripes = getCodeStripes(textarea);
+  if (!stripes) return;
+  stripes.innerHTML = lines.map((line) => `<span>${escapeEditorHtml(line) || " "}</span>`).join("");
+}
+
+function syncCodeEditorMetrics(textarea) {
+  const shell = textarea.closest(".code-editor-shell");
+  if (!shell) return;
+  shell.style.setProperty("--code-scrollbar-width", `${Math.max(0, textarea.offsetWidth - textarea.clientWidth)}px`);
+}
+
+function syncCodeLineHeights(textarea, gutter) {
+  const stripes = getCodeStripes(textarea);
+  if (!stripes || !gutter) return;
+  window.requestAnimationFrame(() => {
+    const stripeRows = Array.from(stripes.children);
+    Array.from(gutter.children).forEach((row, index) => {
+      const height = stripeRows[index]?.offsetHeight || Number.parseFloat(getComputedStyle(textarea).lineHeight) || 21.7;
+      row.style.height = `${height}px`;
+      row.style.lineHeight = `${height}px`;
+    });
+  });
+}
+
+function syncCodeEditorScroll(textarea, gutter, highlightEl = null) {
+  const stripes = getCodeStripes(textarea);
+  if (gutter) gutter.scrollTop = textarea.scrollTop;
+  if (stripes) {
+    stripes.scrollTop = textarea.scrollTop;
+    stripes.scrollLeft = textarea.scrollLeft;
+  }
+  syncCodeHighlightScroll(textarea, highlightEl);
+}
+
+function getCodeStripes(textarea) {
+  return textarea.closest(".code-editor-shell")?.querySelector(".code-stripes") || null;
 }
 
 function syncSourceHighlight(textarea, highlightEl) {
   if (!textarea || !highlightEl) return;
   const syntaxState = { block: "", code: false, formula: false };
-  highlightEl.innerHTML = textarea.value.split("\n").map((line) => renderSourceHighlightLine(line, syntaxState)).join("\n");
+  highlightEl.innerHTML = textarea.value.split("\n").map((line) => renderSourceHighlightLine(line, syntaxState)).join("");
   syncCodeHighlightScroll(textarea, highlightEl);
 }
 
@@ -1155,6 +1198,7 @@ function toggleSidebar() {
 
 function updateSidebar() {
   els.appMain?.classList.toggle("sidebar-collapsed", state.sidebarCollapsed);
+  window.requestAnimationFrame(syncAllEditorChrome);
   if (!els.sidebarToggle) return;
   els.sidebarToggle.setAttribute("aria-expanded", String(!state.sidebarCollapsed));
   els.sidebarToggle.setAttribute("aria-label", t(state.sidebarCollapsed ? "expandFiles" : "collapseFiles"));
