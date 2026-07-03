@@ -629,21 +629,20 @@ function syncCodeEditorChrome(textarea, gutter, countEl, highlightEl = null) {
   if (!textarea || !gutter) return;
   const lines = textarea.value.split("\n");
   const lineCount = Math.max(1, lines.length);
-  let html = "";
-  for (let line = 1; line <= lineCount; line += 1) html += `<span>${line}</span>`;
-  gutter.innerHTML = html;
   syncCodeEditorMetrics(textarea);
-  syncCodeStripes(textarea, lines);
+  let html = "";
+  for (let line = 1; line <= lineCount; line += 1) {
+    html += `
+      <span class="code-row">
+        <span class="code-row-number">${line}</span>
+        <span class="code-row-fill">${escapeEditorHtml(lines[line - 1]) || " "}</span>
+      </span>
+    `;
+  }
+  gutter.innerHTML = html;
   syncSourceHighlight(textarea, highlightEl);
-  syncCodeLineHeights(textarea, gutter);
   syncCodeEditorScroll(textarea, gutter, highlightEl);
   if (countEl) countEl.textContent = t("lineCount", { count: lineCount });
-}
-
-function syncCodeStripes(textarea, lines = textarea.value.split("\n")) {
-  const stripes = getCodeStripes(textarea);
-  if (!stripes) return;
-  stripes.innerHTML = lines.map((line) => `<span>${escapeEditorHtml(line) || " "}</span>`).join("");
 }
 
 function syncCodeEditorMetrics(textarea) {
@@ -652,30 +651,9 @@ function syncCodeEditorMetrics(textarea) {
   shell.style.setProperty("--code-scrollbar-width", `${Math.max(0, textarea.offsetWidth - textarea.clientWidth)}px`);
 }
 
-function syncCodeLineHeights(textarea, gutter) {
-  const stripes = getCodeStripes(textarea);
-  if (!stripes || !gutter) return;
-  const lineHeight = Number.parseFloat(getComputedStyle(textarea).lineHeight) || 21.7;
-  const stripeRows = Array.from(stripes.children);
-  Array.from(gutter.children).forEach((row, index) => {
-    const height = stripeRows[index]?.offsetHeight || lineHeight;
-    row.style.height = `${height}px`;
-    row.style.lineHeight = "";
-  });
-}
-
 function syncCodeEditorScroll(textarea, gutter, highlightEl = null) {
-  const stripes = getCodeStripes(textarea);
   if (gutter) gutter.scrollTop = textarea.scrollTop;
-  if (stripes) {
-    stripes.scrollTop = textarea.scrollTop;
-    stripes.scrollLeft = textarea.scrollLeft;
-  }
   syncCodeHighlightScroll(textarea, highlightEl);
-}
-
-function getCodeStripes(textarea) {
-  return textarea.closest(".code-editor-shell")?.querySelector(".code-stripes") || null;
 }
 
 function syncSourceHighlight(textarea, highlightEl) {
