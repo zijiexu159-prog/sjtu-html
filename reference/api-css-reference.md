@@ -5,9 +5,7 @@
 在 `html-template` 目录下运行：
 
 ```powershell
-node core/build-sjtu-markup.js markdown/example.sjtu.md markdown/example.html
-node core/build-sjtu-markup.js markdown/manual.sjtu.md markdown/manual.html
-node core/build-sjtu-markup.js markdown/touying-main-complete.sjtu.md markdown/touying-main-complete.html
+node core/build-sjtu-markup.js markdown/example.md markdown/example.html
 ```
 
 也可以使用 npm 脚本：

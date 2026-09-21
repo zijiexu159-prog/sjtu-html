@@ -106,7 +106,7 @@ const DEFAULT_FONT_FAMILIES = [
 const FONT_LABEL_BY_VALUE = new Map(DEFAULT_FONT_FAMILIES.map((font) => [font.value, font.label]));
 
 const snippets = {
-  formula: "\n$$ {#eq:new}\n12 + 8 + 4 = 24\n$$\n",
+  formula: "\n$$ {#eq:new}\nu_t + u u_x = \\\\nu u_{xx}\n$$\n",
   theorem: "\n::: theorem 定理标题{#thm:new}\n这里写定理内容。\n:::\n",
   figure: "\n![图片标题](../assets/figures/example.svg){#fig:new}\n",
   step: "\n### 内容块[fade-up]{#block-new}\n#### [1]\n第一步内容\n#### [2]\n第二步内容\n",
@@ -140,7 +140,7 @@ const messages = {
     fileBrowser: "文件",
     collapseFiles: "收起文件栏",
     expandFiles: "展开文件栏",
-    noFiles: "导入文件夹后，这里会列出所有 .sjtu.md 文件。",
+    noFiles: "导入文件夹后，这里会列出 Markdown 幻灯片源稿（.md 或 .sjtu.md）。",
     file: "文件",
     open: "打开",
     uploadFiles: "上传文件/文件夹",
@@ -179,7 +179,7 @@ const messages = {
     insertTheorem: "定理",
     insertFigure: "图片",
     insertStep: "分步",
-    sourcePanel: ".sjtu.md 源稿",
+    sourcePanel: "Markdown 源稿",
     sourceHint: "语义内容",
     layoutPanel: ".layout.json 布局",
     layoutHint: "视觉补丁",
@@ -250,7 +250,7 @@ const messages = {
     fileBrowser: "Files",
     collapseFiles: "Collapse file panel",
     expandFiles: "Expand file panel",
-    noFiles: "Import a folder to list .sjtu.md files here.",
+    noFiles: "Import a folder to list Markdown slide sources (.md or .sjtu.md) here.",
     file: "File",
     open: "Open",
     uploadFiles: "Upload Files/Folder",
@@ -289,7 +289,7 @@ const messages = {
     insertTheorem: "Theorem",
     insertFigure: "Figure",
     insertStep: "Step",
-    sourcePanel: ".sjtu.md Source",
+    sourcePanel: "Markdown Source",
     sourceHint: "Semantic content",
     layoutPanel: ".layout.json Layout",
     layoutHint: "Visual patch",
@@ -1081,7 +1081,7 @@ function toggleFolderCollapsed(folderPath) {
 
 function formatFileName(file) {
   const name = normalizePath(file).split("/").pop() || file;
-  return name.replace(/\.sjtu\.md$/i, "");
+  return name.replace(/(?:\.sjtu)?\.md$/i, "");
 }
 
 function formatFileLocation(file) {

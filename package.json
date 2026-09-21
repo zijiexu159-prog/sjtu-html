@@ -2,16 +2,13 @@
   "name": "sjtu-html-ppt-template",
   "version": "0.1.0",
   "private": true,
-  "description": "Standalone SJTU-style HTML presentation template with direct HTML and SJTU markup workflows.",
+  "description": "Standalone SJTU-style HTML presentation template with Markdown slide sources.",
   "scripts": {
-    "build:example": "node core/build-sjtu-markup.js markdown/example.sjtu.md markdown/example.html",
-    "build:manual": "node core/build-sjtu-markup.js markdown/manual.sjtu.md markdown/manual.html",
-    "build:touying": "node core/build-sjtu-markup.js markdown/touying-main-complete.sjtu.md markdown/touying-main-complete.html",
-    "build": "npm run build:example && npm run build:manual && npm run build:touying",
-    "editor": "node editor/server.js markdown/example.sjtu.md",
-    "editor:manual": "node editor/server.js markdown/manual.sjtu.md",
+    "build:example": "node core/build-sjtu-markup.js markdown/example.md markdown/example.html",
+    "build": "npm run build:example",
+    "editor": "node editor/server.js markdown/example.md",
     "docker:build": "docker build -t sjtu-html-editor .",
     "docker:run": "powershell -ExecutionPolicy Bypass -File scripts/docker-up.ps1",
-    "check:js": "node --check core/sjtu-ppt-core.js && node --check core/sjtu-markup.js && node --check core/build-sjtu-markup.js && node --check direct-html/basic-slides.js && node --check editor/server.js && node --check editor/editor.js"
+    "check:js": "node --check core/sjtu-ppt-core.js && node --check core/sjtu-markup.js && node --check core/build-sjtu-markup.js && node --check editor/server.js && node --check editor/editor.js"
   }
 }

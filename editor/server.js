@@ -21,17 +21,17 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/api/state") return sendJson(response, readState());
     if (request.method === "GET" && url.pathname === "/api/files") return sendJson(response, { files: listMarkupFiles() });
     if (request.method === "GET" && url.pathname === "/api/export") return handleExport(response);
-    if (request.method === "POST" && url.pathname === "/api/open") return handleOpen(request, response);
-    if (request.method === "POST" && url.pathname === "/api/save") return handleSave(request, response);
+    if (request.method === "POST" && url.pathname === "/api/open") return await handleOpen(request, response);
+    if (request.method === "POST" && url.pathname === "/api/save") return await handleSave(request, response);
     if (request.method === "POST" && url.pathname === "/api/build") return handleBuild(response);
-    if (request.method === "POST" && url.pathname === "/api/import") return handleImport(request, response);
-    if (request.method === "POST" && url.pathname === "/api/delete") return handleDelete(request, response);
-    if (request.method === "POST" && url.pathname === "/api/folder") return handleCreateFolder(request, response);
-    if (request.method === "POST" && url.pathname === "/api/create") return handleCreateFile(request, response);
-    if (request.method === "POST" && url.pathname === "/api/move") return handleMoveFile(request, response);
-    if (request.method === "POST" && url.pathname === "/api/project/open") return handleOpenProject(request, response);
-    if (request.method === "POST" && url.pathname === "/api/project/create") return handleCreateProject(request, response);
-    if (request.method === "POST" && url.pathname === "/api/project/delete") return handleDeleteProject(request, response);
+    if (request.method === "POST" && url.pathname === "/api/import") return await handleImport(request, response);
+    if (request.method === "POST" && url.pathname === "/api/delete") return await handleDelete(request, response);
+    if (request.method === "POST" && url.pathname === "/api/folder") return await handleCreateFolder(request, response);
+    if (request.method === "POST" && url.pathname === "/api/create") return await handleCreateFile(request, response);
+    if (request.method === "POST" && url.pathname === "/api/move") return await handleMoveFile(request, response);
+    if (request.method === "POST" && url.pathname === "/api/project/open") return await handleOpenProject(request, response);
+    if (request.method === "POST" && url.pathname === "/api/project/create") return await handleCreateProject(request, response);
+    if (request.method === "POST" && url.pathname === "/api/project/delete") return await handleDeleteProject(request, response);
     if (request.method === "GET" && url.pathname === "/preview") return servePreviewHtml(response, project.outputPath);
     if (request.method === "GET") return serveStatic(response, url.pathname);
     send(response, 405, "Method not allowed");
@@ -67,7 +67,7 @@ function listen(nextPort) {
 async function handleOpen(request, response) {
   const body = await readJsonBody(request);
   const nextSource = resolveWorkspacePath(String(body.path || ""));
-  if (!/\.sjtu\.md$/i.test(nextSource)) throw new Error("Only .sjtu.md files can be opened");
+  if (!isMarkupSourcePath(nextSource)) throw new Error("Only Markdown slide sources (.md or .sjtu.md) can be opened");
   ensureInsideWorkspace(nextSource);
   project = createProject(nextSource);
   ensureProjectReady(project);
@@ -111,8 +111,11 @@ async function handleImport(request, response) {
     written.push(target);
   }
 
-  const firstMarkup = written.find((filePath) => /\.sjtu\.md$/i.test(filePath));
-  if (!firstMarkup) throw new Error("Imported files did not include a .sjtu.md source");
+  const markdownFiles = written.filter(isMarkupSourcePath);
+  const firstMarkup = markdownFiles.find((filePath) => /\.sjtu\.md$/i.test(filePath))
+    || markdownFiles.find(isSlideSourceFile)
+    || (markdownFiles.length === 1 ? markdownFiles[0] : null);
+  if (!firstMarkup) throw new Error("Imported files did not include a Markdown slide source (.md or .sjtu.md)");
   project = createProject(firstMarkup);
   ensureProjectReady(project);
   sendJson(response, readState());
@@ -121,7 +124,8 @@ async function handleImport(request, response) {
 async function handleDelete(request, response) {
   const body = await readJsonBody(request);
   const sourcePath = resolveWorkspacePath(String(body.path || ""));
-  if (!/\.sjtu\.md$/i.test(sourcePath)) throw new Error("Only .sjtu.md files can be deleted");
+  if (!isMarkupSourcePath(sourcePath)) throw new Error("Only Markdown slide sources (.md or .sjtu.md) can be deleted");
+  assertNoSiblingSourceCollision(sourcePath);
   if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) throw new Error("Source file not found");
 
   const deletableFiles = getDeletableProjectFiles(sourcePath);
@@ -159,8 +163,9 @@ async function handleCreateFile(request, response) {
   if (!relative) throw new Error("File name is required");
   const sourcePath = resolveWorkspacePath(relative);
   if (fs.existsSync(sourcePath)) throw new Error("File already exists");
+  assertNoSiblingSourceCollision(sourcePath);
   fs.mkdirSync(path.dirname(sourcePath), { recursive: true });
-  const title = path.basename(sourcePath).replace(/\.sjtu\.md$/i, "") || "Untitled";
+  const title = path.basename(sourcePath).replace(/(?:\.sjtu)?\.md$/i, "") || "Untitled";
   fs.writeFileSync(sourcePath, createDefaultSource(title), "utf8");
   project = createProject(sourcePath);
   ensureProjectReady(project);
@@ -170,7 +175,7 @@ async function handleCreateFile(request, response) {
 async function handleMoveFile(request, response) {
   const body = await readJsonBody(request);
   const sourcePath = resolveWorkspacePath(String(body.path || ""));
-  if (!/\.sjtu\.md$/i.test(sourcePath)) throw new Error("Only .sjtu.md files can be moved");
+  if (!isMarkupSourcePath(sourcePath)) throw new Error("Only Markdown slide sources (.md or .sjtu.md) can be moved");
   if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) throw new Error("Source file not found");
 
   const targetDirPath = safeWorkspaceRelativePath(String(body.targetDir || ""));
@@ -192,7 +197,7 @@ async function handleOpenProject(request, response) {
   const rootPath = projectRoot ? resolveWorkspacePath(projectRoot) : workspaceRoot;
   if (!fs.existsSync(rootPath) || !fs.statSync(rootPath).isDirectory()) throw new Error("Project not found");
   const files = listProjectMarkupFiles(rootPath);
-  if (!files.length) throw new Error("Project does not contain .sjtu.md files");
+  if (!files.length) throw new Error("Project does not contain Markdown slide sources");
   project = createProject(path.resolve(rootPath, files[0]));
   ensureProjectReady(project);
   sendJson(response, readState());
@@ -205,7 +210,7 @@ async function handleCreateProject(request, response) {
   const projectDir = path.join(workspaceRoot, "projects", name);
   if (fs.existsSync(projectDir)) throw new Error("Project already exists");
   fs.mkdirSync(projectDir, { recursive: true });
-  const sourcePath = path.join(projectDir, `${name}.sjtu.md`);
+  const sourcePath = path.join(projectDir, `${name}.md`);
   fs.writeFileSync(sourcePath, createDefaultSource(name), "utf8");
   project = createProject(sourcePath);
   ensureProjectReady(project);
@@ -231,7 +236,7 @@ async function handleDeleteProject(request, response) {
 function handleExport(response) {
   const dir = path.dirname(project.sourcePath);
   const zip = createZipFromDirectory(dir);
-  const base = path.basename(project.sourcePath).replace(/\.sjtu\.md$/i, "") || "sjtu-slides";
+  const base = path.basename(project.sourcePath).replace(/(?:\.sjtu)?\.md$/i, "") || "sjtu-slides";
   response.writeHead(200, {
     "Content-Type": "application/zip",
     "Content-Disposition": `attachment; filename="${base}.zip"`,
@@ -269,18 +274,17 @@ function resolveInitialSource() {
 }
 
 function seedWorkspaceExample() {
-  const source = path.join(workspaceRoot, "example.sjtu.md");
-  const layout = path.join(workspaceRoot, "example.layout.json");
-  if (!fs.existsSync(source)) fs.copyFileSync(path.join(root, "markdown", "example.sjtu.md"), source);
-  if (!fs.existsSync(layout)) fs.copyFileSync(path.join(root, "markdown", "example.layout.json"), layout);
+  const source = path.join(workspaceRoot, "example.md");
+  if (!fs.existsSync(source)) fs.copyFileSync(path.join(root, "markdown", "example.md"), source);
   return source;
 }
 
 function createProject(sourcePath) {
   const resolvedSource = path.resolve(sourcePath);
+  assertNoSiblingSourceCollision(resolvedSource);
   ensureWritableSource(resolvedSource);
   const layoutPath = getLayoutPath(resolvedSource);
-  const outputPath = resolvedSource.replace(/\.sjtu\.md$/i, ".html");
+  const outputPath = getOutputPath(resolvedSource);
   ensureWritableSource(layoutPath);
   ensureWritableSource(outputPath);
   return { sourcePath: resolvedSource, layoutPath, outputPath };
@@ -308,14 +312,27 @@ function buildMarkup(nextProject) {
 function getLayoutPath(markupPath) {
   const explicit = readExplicitLayoutPath(markupPath);
   if (explicit) return explicit;
-  return markupPath.replace(/\.sjtu\.md$/i, ".layout.json");
+  return markupPath.replace(/(?:\.sjtu)?\.md$/i, ".layout.json");
+}
+
+function getOutputPath(markupPath) {
+  return markupPath.replace(/(?:\.sjtu)?\.md$/i, ".html");
+}
+
+function assertNoSiblingSourceCollision(markupPath) {
+  const siblingPath = /\.sjtu\.md$/i.test(markupPath)
+    ? markupPath.replace(/\.sjtu\.md$/i, ".md")
+    : markupPath.replace(/\.md$/i, ".sjtu.md");
+  if (/\.md$/i.test(markupPath) && fs.existsSync(siblingPath)) {
+    throw new Error(`Ambiguous slide sources share the same output: ${markupPath} and ${siblingPath}. Keep only one source in this folder.`);
+  }
 }
 
 function getDeletableProjectFiles(sourcePath) {
   const candidates = [
     sourcePath,
     getLayoutPath(sourcePath),
-    sourcePath.replace(/\.sjtu\.md$/i, ".html"),
+    getOutputPath(sourcePath),
   ];
   const unique = new Map();
   for (const candidate of candidates) {
@@ -329,7 +346,7 @@ function getDeletableProjectFiles(sourcePath) {
 function moveProjectFiles(sourcePath, targetDir) {
   const oldSource = path.resolve(sourcePath);
   const oldLayout = getLayoutPath(oldSource);
-  const oldOutput = oldSource.replace(/\.sjtu\.md$/i, ".html");
+  const oldOutput = getOutputPath(oldSource);
   const newSource = path.join(targetDir, path.basename(oldSource));
   const newLayout = path.join(targetDir, path.basename(oldLayout));
   const newOutput = path.join(targetDir, path.basename(oldOutput));
@@ -337,6 +354,7 @@ function moveProjectFiles(sourcePath, targetDir) {
   ensureMoveTargetAvailable(newSource, oldSource);
   ensureMoveTargetAvailable(newLayout, oldLayout);
   ensureMoveTargetAvailable(newOutput, oldOutput);
+  assertNoSiblingSourceCollision(newSource);
 
   const sourceContent = fs.readFileSync(oldSource, "utf8");
   if (fs.existsSync(oldLayout) && !samePath(oldLayout, newLayout)) fs.renameSync(oldLayout, newLayout);
@@ -382,7 +400,7 @@ function ensureLayoutFile(nextProject) {
 function listMarkupFiles(baseDir = workspaceRoot) {
   const files = [];
   walkProjectEntries(baseDir, (entry, fullPath) => {
-    if (entry.isFile() && /\.sjtu\.md$/i.test(entry.name)) {
+    if (entry.isFile() && isSlideSourceFile(fullPath)) {
       files.push(path.relative(baseDir, fullPath).replace(/\\/g, "/"));
     }
   });
@@ -434,7 +452,7 @@ function collectProjectRoots() {
   };
 
   const rootHasMarkup = fs.readdirSync(workspaceRoot, { withFileTypes: true })
-    .some((entry) => entry.isFile() && /\.sjtu\.md$/i.test(entry.name));
+    .some((entry) => entry.isFile() && isSlideSourceFile(path.join(workspaceRoot, entry.name)));
   if (rootHasMarkup) addRoot(workspaceRoot);
 
   for (const entry of fs.readdirSync(workspaceRoot, { withFileTypes: true })) {
@@ -454,7 +472,7 @@ function collectProjectRoots() {
 function listProjectMarkupFiles(rootPath) {
   if (!samePath(rootPath, workspaceRoot)) return listMarkupFiles(rootPath);
   return fs.readdirSync(workspaceRoot, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && /\.sjtu\.md$/i.test(entry.name))
+    .filter((entry) => entry.isFile() && isSlideSourceFile(path.join(workspaceRoot, entry.name)))
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 }
@@ -766,11 +784,34 @@ function samePath(left, right) {
 function normalizeMarkupPath(value = "") {
   const cleaned = safeWorkspaceRelativePath(value);
   if (!cleaned) return "";
-  return /\.sjtu\.md$/i.test(cleaned) ? cleaned : `${cleaned}.sjtu.md`;
+  return /\.md$/i.test(cleaned) ? cleaned : `${cleaned}.md`;
 }
 
 function sanitizeProjectName(value = "") {
-  return sanitizeRelativePath(value).split("/").pop()?.replace(/\.sjtu\.md$/i, "").trim() || "";
+  return sanitizeRelativePath(value).split("/").pop()?.replace(/(?:\.sjtu)?\.md$/i, "").trim() || "";
+}
+
+function isMarkupSourcePath(filePath) {
+  return /\.md$/i.test(filePath) && !/^readme(?:[_-][a-z0-9]+)*\.md$/i.test(path.basename(filePath));
+}
+
+function isSlideSourceFile(filePath) {
+  if (!isMarkupSourcePath(filePath)) return false;
+  if (/\.sjtu\.md$/i.test(filePath)) return true;
+  try {
+    let inFence = false;
+    for (const line of fs.readFileSync(filePath, "utf8").replace(/\r\n?/g, "\n").split("\n")) {
+      if (/^\s*```/.test(line)) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+      if (/^%\s*title\s*:/i.test(line) || /^---\s+\S/.test(line)) return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
 }
 
 function safeWorkspaceRelativePath(value = "") {

@@ -1,10 +1,22 @@
 const fs = require("fs");
 const path = require("path");
 
-const inputArg = process.argv[2] || "markdown/example.sjtu.md";
-const outputArg = process.argv[3] || inputArg.replace(/\.sjtu\.md$/i, ".html");
+const inputArg = process.argv[2] || "markdown/example.md";
 const input = path.resolve(inputArg);
+if (!/\.md$/i.test(input)) {
+  throw new Error("Input source must be a Markdown file ending in .md or .sjtu.md");
+}
+const outputArg = process.argv[3] || input.replace(/(?:\.sjtu)?\.md$/i, ".html");
 const output = path.resolve(outputArg);
+if (input.toLowerCase() === output.toLowerCase()) {
+  throw new Error("Output must not overwrite the Markdown source");
+}
+const siblingInput = /\.sjtu\.md$/i.test(input)
+  ? input.replace(/\.sjtu\.md$/i, ".md")
+  : input.replace(/\.md$/i, ".sjtu.md");
+if (/\.md$/i.test(input) && fs.existsSync(siblingInput)) {
+  throw new Error(`Ambiguous slide sources share the same output: ${input} and ${siblingInput}. Keep only one source in this folder.`);
+}
 const rawSource = fs.readFileSync(input, "utf8");
 const source = rawSource.replace(/<\/script/gi, "<\\/script");
 const title = source.match(/^%\s*title\s*:\s*(.+)$/m)?.[1] || "SJTU Markup PPT";

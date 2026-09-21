@@ -6,3 +6,6 @@ workspace
 imports
 *.log
 npm-debug.log*
+output
+.private-archive
+.playwright-cli

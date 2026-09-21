@@ -5,3 +5,7 @@ Thumbs.db
 *.log
 dist/
 workspace/
+.playwright-cli/
+core/markup/fixtures/*.html
+output/
+.private-archive/

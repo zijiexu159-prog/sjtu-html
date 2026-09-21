@@ -1,0 +1,3 @@
+#!/bin/sh
+# Run on all proposed histories, not merely the current worktree or newest diff.
+exec node "$(git rev-parse --show-toplevel)/scripts/check-public-history.js" --pre-push

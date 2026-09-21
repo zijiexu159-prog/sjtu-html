@@ -1,0 +1,19 @@
+name: Public content checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  publication:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check staged files and reachable history
+        run: |
+          node scripts/check-public-content.js --staged
+          node scripts/check-public-history.js
+          node scripts/test-public-history.js
+      - name: Verify the new example builds
+        run: npm run build
